@@ -1,0 +1,9 @@
+[submodule "external/Lapis"]
+	path = external/Lapis
+	url = https://github.com/ReidYeager/Lapis
+[submodule "external/Opal"]
+	path = external/Opal
+	url = https://github.com/ReidYeager/Opal
+[submodule "external/Peridot"]
+	path = external/Peridot
+	url = https://github.com/ReidYeager/Peridot
