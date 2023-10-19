@@ -3,12 +3,24 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+//#include "imgui/imgui.h"
+//#include "imgui/imgui_impl_vulkan.h"
+//#include "imgui/imgui_impl_win32.h"
+
+#include "graphics/graphics.h"
+
 #include <lapis.h>
 #include <opal.h>
 #include <peridot.h>
 
 int main(void)
 {
+  MsgInit(true);
+
+  MsgShutdown();
+
+  return 0;
+
   LapisWindow window;
   LapisWindowInitInfo windowInfo = { 0 };
   windowInfo.extents = { 1280, 720 };
@@ -112,6 +124,9 @@ int main(void)
   OpalMaterial material;
   OpalMaterialInit(&material, matInfo);
 
+
+  // Rendering
+
   struct Vertex {
     Vec3 position;
     Vec3 normal;
@@ -137,7 +152,7 @@ int main(void)
 
   while (!LapisWindowGetShouldClose(window))
   {
-    LapisWindowProcessOsEvents(window);
+    LapisWindowUpdate(window);
 
     OpalRenderBegin(oWindow);
     OpalRenderBeginRenderpass(rp, fb);
