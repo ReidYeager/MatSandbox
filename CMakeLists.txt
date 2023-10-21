@@ -15,20 +15,21 @@ add_subdirectory ("external/")
 #file(GLOB_RECURSE CSourceFiles CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 #file(GLOB_RECURSE CppSourceFiles CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
+file(GLOB_RECURSE ImguiFiles CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/imgui/*")
 
 add_executable(MatSandbox
+  ${ImguiFiles}
+
   # App =====
   src/main.cpp
-
-  # Graphics =====
-  src/graphics/graphics.h
-  src/graphics/graphics_defines.h
-  src/graphics/graphics_define_types.h
-  src/graphics/core.cpp
+  src/defines.h
+  src/window.h
+  src/window.cpp
 )
 
 target_include_directories (MatSandbox PUBLIC
   ./
+  ./src/imgui/
   ExternalDeps
   ${Vulkan_INCLUDE_DIRS}
 )

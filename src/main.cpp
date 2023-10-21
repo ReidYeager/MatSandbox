@@ -3,37 +3,33 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-//#include "imgui/imgui.h"
-//#include "imgui/imgui_impl_vulkan.h"
-//#include "imgui/imgui_impl_win32.h"
+#include "src/window.h"
 
-#include "graphics/graphics.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_vulkan.h"
+#include "imgui/imgui_impl_win32.h"
 
 #include <lapis.h>
 #include <opal.h>
 #include <peridot.h>
 
+void ImguiVkResultCheck(VkResult error)
+{
+  return;
+}
+
 int main(void)
 {
-  MsgInit(true);
-
-  MsgShutdown();
-
-  return 0;
-
-  LapisWindow window;
-  LapisWindowInitInfo windowInfo = { 0 };
-  windowInfo.extents = { 1280, 720 };
-  windowInfo.position = { 100, 100 };
-  windowInfo.resizable = true;
-  windowInfo.title = "Material sandbox";
-  if (LapisWindowInit(windowInfo, &window) != Lapis_Success)
-  {
-    return -1;
-  }
+  MsbWindow msWindow;
+  MsbWindowInitInfo windowInitInfo = { 0 };
+  windowInitInfo.extents = { 1280, 720 };
+  windowInitInfo.position = { 100, 100 };
+  windowInitInfo.title = "Imgui forced me to remove Opal's Lapis dependency";
+  WindowInit(&msWindow, windowInitInfo);
 
   OpalInitInfo opalInfo = { 0 };
-  opalInfo.lapisWindow = window;
+  opalInfo.windowPlatformInfo.hinstance = msWindow.hinstance;
+  opalInfo.windowPlatformInfo.hwnd = msWindow.hwnd;
   opalInfo.debug = false;
   OpalFormat vertexInputFormats[3] = { Opal_Format_RGB32, Opal_Format_RGB32, Opal_Format_RG32 };
   opalInfo.vertexStruct.count = 3;
@@ -41,12 +37,14 @@ int main(void)
 
   if (OpalInit(opalInfo) != Opal_Success)
   {
-    LapisWindowShutdown(&window);
+    WindowShutdown(&msWindow);
     return -1;
   }
 
   OpalWindowInitInfo owInfo = { 0 };
-  owInfo.lapisWindow = window;
+  owInfo.platformInfo.hinstance = msWindow.hinstance;
+  owInfo.platformInfo.hwnd = msWindow.hwnd;
+  owInfo.extents = windowInitInfo.extents;
   OpalWindow oWindow;
   OpalWindowInit(&oWindow, owInfo);
 
@@ -124,6 +122,36 @@ int main(void)
   OpalMaterial material;
   OpalMaterialInit(&material, matInfo);
 
+  // IMGUI
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+  ImGui::StyleColorsDark();
+
+  ImGui_ImplWin32_Init(msWindow.hwnd);
+
+  ImGui_ImplVulkan_InitInfo imguiVulkanInfo = { 0 };
+  imguiVulkanInfo.Allocator = NULL;
+  imguiVulkanInfo.Instance = oState.vk.instance;
+  imguiVulkanInfo.Device = oState.vk.device;
+  imguiVulkanInfo.PhysicalDevice = oState.vk.gpu;
+  imguiVulkanInfo.QueueFamily = oState.vk.gpuInfo.queueIndexGraphics;
+  imguiVulkanInfo.Queue = oState.vk.queueGraphics;
+  imguiVulkanInfo.PipelineCache = VK_NULL_HANDLE;
+  imguiVulkanInfo.DescriptorPool = oState.vk.descriptorPool;
+  imguiVulkanInfo.Subpass = 0;
+  imguiVulkanInfo.MinImageCount = 2;
+  imguiVulkanInfo.ImageCount = oWindow->imageCount;
+  imguiVulkanInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+  imguiVulkanInfo.CheckVkResultFn = ImguiVkResultCheck;
+  ImGui_ImplVulkan_Init(&imguiVulkanInfo, rp->vk.renderpass);
+
+  VkCommandBuffer cmd;
+  OpalBeginSingleUseCommand(oState.vk.transientCommandPool, &cmd);
+  ImGui_ImplVulkan_CreateFontsTexture(cmd);
+  OpalEndSingleUseCommand(oState.vk.transientCommandPool, oState.vk.queueTransfer, cmd);
+  ImGui_ImplVulkan_DestroyFontUploadObjects();
 
   // Rendering
 
@@ -150,14 +178,33 @@ int main(void)
   OpalMesh mesh;
   OpalMeshInit(&mesh, meshInfo);
 
-  while (!LapisWindowGetShouldClose(window))
+  bool testBool = false;
+  char codeBuffer[2048];
+
+  while (msWindow.isOpen)
   {
-    LapisWindowUpdate(window);
+    WindowUpdate(&msWindow);
 
     OpalRenderBegin(oWindow);
     OpalRenderBeginRenderpass(rp, fb);
     OpalRenderBindMaterial(material);
     OpalRenderMesh(mesh);
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("This is a test thing");
+    ImGui::Text("SDLKFJSDLKFJSDLKFJSDLFKSDJ");
+    ImGui::Checkbox("something", &testBool);
+    ImGui::InputTextMultiline("Code thing", codeBuffer, 2048);
+    ImGui::End();
+    ImGui::ShowDemoWindow();
+
+    ImGui::Render();
+    ImDrawData* drawData = ImGui::GetDrawData();
+    ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
+
     OpalRenderEndRenderpass(rp);
     OpalRenderEnd();
   }
@@ -170,7 +217,7 @@ int main(void)
   OpalRenderpassShutdown(&rp);
 
   OpalShutdown();
-  LapisWindowShutdown(&window);
+  WindowShutdown(&msWindow);
 
   return 0;
 }

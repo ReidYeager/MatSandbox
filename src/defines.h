@@ -23,4 +23,14 @@ enum MsResult
   }                         \
 }
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+#define MSB_PLATFORM_WIN32 1
+#ifndef _WIN64
+#error "Must have 64-bit windows"
+#endif
+#else
+#error "Unsupported platform"
+#endif
+
+
 #endif // !MATSANDBOX_DEFINES_H
