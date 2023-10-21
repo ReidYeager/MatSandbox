@@ -40,4 +40,5 @@ target_link_libraries(MatSandbox
 )
 
 target_compile_definitions(MatSandbox PRIVATE GAME_RESOURCE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/res/")
+target_compile_definitions(MatSandbox PRIVATE VULKAN_COMPILER="${Vulkan_LIBRARIES}/../../bin/glslc.exe")
 

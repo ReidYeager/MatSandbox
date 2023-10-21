@@ -13,6 +13,56 @@
 #include <opal.h>
 #include <peridot.h>
 
+#include <string>
+#include <memory>
+
+FILE* newShaderHlslSource;
+OpalShader shaders[2] = { 0 };
+OpalMaterial material;
+
+void CompileShader(char* buffer, bool isFragment)
+{
+  printf("Code text is:\n\"%s\"\n", buffer);
+  uint32_t size = strlen(buffer);
+
+  if (isFragment)
+    newShaderHlslSource = fopen("./NewShaderSource.frag", "w");
+  else
+    newShaderHlslSource = fopen("./NewShaderSource.vert", "w");
+  fwrite(buffer, sizeof(char), size, newShaderHlslSource);
+  fclose(newShaderHlslSource);
+
+  //printf(">>> Command\n");
+
+  FILE* fp;
+  if (isFragment)
+    fp = _popen(VULKAN_COMPILER " NewShaderSource.frag -o NewShaderCompiled.spv", "r");
+  else
+    fp = _popen(VULKAN_COMPILER " NewShaderSource.vert -o NewShaderCompiled.spv", "r");
+
+  printf(">>> Output\n");
+  char shellBuffer[1024];
+  while (fgets(shellBuffer, 1024, fp) != NULL)
+  {
+    printf("} \n");
+    printf("\"%s\"", shellBuffer);
+  }
+  printf(">>> End\n");
+  _pclose(fp);
+
+  uint32_t shaderIndex = isFragment ? 1 : 0;
+
+  OpalShaderShutdown(&shaders[shaderIndex]);
+  OpalShaderInitInfo initInfo = {};
+  initInfo.type = isFragment ? Opal_Shader_Fragment : Opal_Shader_Vertex;
+  initInfo.size = LapisFileRead("NewShaderCompiled.spv", &initInfo.pSource);
+  OpalShaderInit(&shaders[shaderIndex],  initInfo);
+
+  LapisMemFree(initInfo.pSource);
+
+  OpalMaterialReinit(material);
+}
+
 void ImguiVkResultCheck(VkResult error)
 {
   return;
@@ -24,7 +74,7 @@ int main(void)
   MsbWindowInitInfo windowInitInfo = { 0 };
   windowInitInfo.extents = { 1280, 720 };
   windowInitInfo.position = { 100, 100 };
-  windowInitInfo.title = "Imgui forced me to remove Opal's Lapis dependency";
+  windowInitInfo.title = "Retrieving code from textbox";
   WindowInit(&msWindow, windowInitInfo);
 
   OpalInitInfo opalInfo = { 0 };
@@ -98,7 +148,6 @@ int main(void)
   OpalFramebuffer fb;
   OpalFramebufferInit(&fb, fbInfo);
 
-  OpalShader shaders[2] = { 0 };
   OpalShaderInitInfo shaderInfos[2] = { 0 };
   shaderInfos[0].type = Opal_Shader_Vertex;
   shaderInfos[0].size = LapisFileRead("D:/Dev/MatSandbox/res/shaders/compiled/nothing.vert.spv", &shaderInfos[0].pSource);
@@ -119,7 +168,6 @@ int main(void)
   matInfo.pushConstantSize = 0;
   matInfo.renderpass = rp;
   matInfo.subpassIndex = 0;
-  OpalMaterial material;
   OpalMaterialInit(&material, matInfo);
 
   // IMGUI
@@ -178,8 +226,27 @@ int main(void)
   OpalMesh mesh;
   OpalMeshInit(&mesh, meshInfo);
 
-  bool testBool = false;
-  char codeBuffer[2048];
+  char vertCodeBuffer[2048] =
+    "#version 410\n"
+    "\n"
+    "layout (location = 0) in vec3 inPosition;\n"
+    "layout (location = 1) in vec3 inNormal;\n"
+    "layout (location = 2) in vec2 inUv;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "  gl_Position = vec4(inPosition, 1.0);\n"
+    "}\n";
+
+  char fragCodeBuffer[2048] =
+    "#version 410\n"
+    "\n"
+    "layout(location = 0) out vec4 outColor;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "    outColor = vec4(0.0, 1.0, 0.0, 1.0);\n"
+    "}\n";
 
   while (msWindow.isOpen)
   {
@@ -195,11 +262,22 @@ int main(void)
     ImGui::NewFrame();
 
     ImGui::Begin("This is a test thing");
-    ImGui::Text("SDLKFJSDLKFJSDLKFJSDLFKSDJ");
-    ImGui::Checkbox("something", &testBool);
-    ImGui::InputTextMultiline("Code thing", codeBuffer, 2048);
+    ImGui::Text("Vertex shader");
+    if (ImGui::Button("Compile Vert"))
+    {
+      CompileShader(vertCodeBuffer, false);
+    }
+    ImGui::InputTextMultiline("##vertSource", vertCodeBuffer, 2048, { -FLT_MIN, ImGui::GetTextLineHeight() * 20 }, ImGuiInputTextFlags_AllowTabInput);
+
+    ImGui::Text("Fragment shader");
+    if (ImGui::Button("Compile Frag"))
+    {
+      CompileShader(fragCodeBuffer, true);
+    }
+    ImGui::InputTextMultiline("##fragSource", fragCodeBuffer, 2048, {-FLT_MIN, ImGui::GetTextLineHeight() * 20}, ImGuiInputTextFlags_AllowTabInput);
+
     ImGui::End();
-    ImGui::ShowDemoWindow();
+    //ImGui::ShowDemoWindow();
 
     ImGui::Render();
     ImDrawData* drawData = ImGui::GetDrawData();
