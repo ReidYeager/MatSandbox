@@ -20,35 +20,45 @@ FILE* newShaderHlslSource;
 OpalShader shaders[2] = { 0 };
 OpalMaterial material;
 
+uint32_t ParseCompilationErrors(FILE* pipe)
+{
+  uint32_t errorCount = 0;
+
+  char shellBuffer[2048];
+
+  // TODO : Parse and handle errors
+  while (fgets(shellBuffer, 1024, pipe) != NULL)
+  {
+    printf("%u : \"%s\"", errorCount, shellBuffer);
+    errorCount++;
+  }
+
+  return errorCount;
+}
+
 void CompileShader(char* buffer, bool isFragment)
 {
   printf("Code text is:\n\"%s\"\n", buffer);
   uint32_t size = strlen(buffer);
 
-  if (isFragment)
-    newShaderHlslSource = fopen("./NewShaderSource.frag", "w");
-  else
-    newShaderHlslSource = fopen("./NewShaderSource.vert", "w");
+  char newFileName[64];
+  char command[512];
+  sprintf_s(newFileName, 64, "NewShaderSource.%s", isFragment ? "frag" : "vert");
+  sprintf_s(command, 512, VULKAN_COMPILER " %s -o NewShaderCompiled.spv 2>&1", newFileName);
+
+  fopen_s(&newShaderHlslSource, newFileName, "w");
   fwrite(buffer, sizeof(char), size, newShaderHlslSource);
   fclose(newShaderHlslSource);
 
-  //printf(">>> Command\n");
-
-  FILE* fp;
-  if (isFragment)
-    fp = _popen(VULKAN_COMPILER " NewShaderSource.frag -o NewShaderCompiled.spv", "r");
-  else
-    fp = _popen(VULKAN_COMPILER " NewShaderSource.vert -o NewShaderCompiled.spv", "r");
-
-  printf(">>> Output\n");
-  char shellBuffer[1024];
-  while (fgets(shellBuffer, 1024, fp) != NULL)
-  {
-    printf("} \n");
-    printf("\"%s\"", shellBuffer);
-  }
-  printf(">>> End\n");
+  FILE* fp = _popen(command, "r");
+  uint32_t errorCount = ParseCompilationErrors(fp);
   _pclose(fp);
+
+  if (errorCount > 0)
+  {
+    printf("Encountered %u compilation errors\n", errorCount);
+    return;
+  }
 
   uint32_t shaderIndex = isFragment ? 1 : 0;
 
@@ -56,11 +66,15 @@ void CompileShader(char* buffer, bool isFragment)
   OpalShaderInitInfo initInfo = {};
   initInfo.type = isFragment ? Opal_Shader_Fragment : Opal_Shader_Vertex;
   initInfo.size = LapisFileRead("NewShaderCompiled.spv", &initInfo.pSource);
-  OpalShaderInit(&shaders[shaderIndex],  initInfo);
+  if (OpalShaderInit(&shaders[shaderIndex], initInfo) != Opal_Success)
+  {
+    printf("Failed to reinit the shader\n");
+  }
 
   LapisMemFree(initInfo.pSource);
 
   OpalMaterialReinit(material);
+  fp = fp;
 }
 
 void ImguiVkResultCheck(VkResult error)
@@ -227,25 +241,29 @@ int main(void)
   OpalMeshInit(&mesh, meshInfo);
 
   char vertCodeBuffer[2048] =
-    "#version 410\n"
+    "#version 0\n"
     "\n"
     "layout (location = 0) in vec3 inPosition;\n"
     "layout (location = 1) in vec3 inNormal;\n"
     "layout (location = 2) in vec2 inUv;\n"
     "\n"
+    "layout (location = 0) out vec3 outPos;\n"
+    "\n"
     "void main()\n"
     "{\n"
-    "  gl_Position = vec4(inPosition, 1.0);\n"
+    "    outPos = inPosition;\n"
+    "    gl_Position = vec4(inPosition, 1.0);\n"
     "}\n";
 
   char fragCodeBuffer[2048] =
     "#version 410\n"
     "\n"
+    "layout(location = 0) in vec3 inPos;\n"
     "layout(location = 0) out vec4 outColor;\n"
     "\n"
     "void main()\n"
     "{\n"
-    "    outColor = vec4(0.0, 1.0, 0.0, 1.0);\n"
+    "    outColor = vec4(inPos, 1.0);\n"
     "}\n";
 
   while (msWindow.isOpen)
