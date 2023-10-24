@@ -25,6 +25,8 @@ add_executable(MatSandbox
   src/defines.h
   src/window.h
   src/window.cpp
+  src/code.cpp
+  src/mesh.cpp
 )
 
 target_include_directories (MatSandbox PUBLIC

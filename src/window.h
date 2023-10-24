@@ -3,6 +3,7 @@
 #define MATSANDBOX_WINDOW_H
 
 #include <peridot.h>
+#include <opal.h>
 
 #include <windows.h>
 #include <windowsx.h>
@@ -15,6 +16,8 @@ typedef struct MsbWindow
 
   uint32_t windowStyle;
   uint32_t windowExStyle;
+
+  OpalWindow opal;
 
   bool isOpen;
 } MsbWindow;
