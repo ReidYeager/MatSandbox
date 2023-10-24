@@ -20,7 +20,19 @@ OpalFramebuffer framebuffer;
 OpalShader shaders[2] = { 0 };
 OpalMaterial material;
 uint32_t selectedMesh = 0;
-OpalMesh meshes[2];
+uint32_t renderedModelIndex = 0;
+OpalMesh meshes[4];
+
+OpalInputSet globalInputSet;
+OpalBuffer globalInputBuffer;
+Transform camTransform = transformIdentity;
+struct GlobalInputStruct
+{
+  Mat4 cameraView;
+  Mat4 cameraProjection;
+  Mat4 viewProj;
+  Vec3 cameraForward;
+} globalStruct;
 
 void ImguiVkResultCheck(VkResult error) {}
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -110,29 +122,39 @@ MsResult InitOpalBoilerplate()
 
 MsResult InitMeshes()
 {
-  MsVertex verts[3] = {
-    { { 0.0f, -0.5f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f} },
-    { { 0.5f,  0.5f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f} },
-    { {-0.5f,  0.5f, 0.5f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f} }
-  };
-  uint32_t indices[3] = {
-    0, 2, 1
-  };
-
-  OpalMeshInitInfo meshInfo = { 0 };
-  meshInfo.vertexCount = 3;
-  meshInfo.pVertices = verts;
-  meshInfo.indexCount = 3;
-  meshInfo.pIndices = indices;
-  MS_ATTEMPT_OPAL(OpalMeshInit(&meshes[0], meshInfo));
-
-  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/Cyborg_Weapon.obj", &meshes[1]));
+  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/Sphere.obj", &meshes[0]));
+  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/SphereSmooth.obj", &meshes[1]));
+  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/Cube.obj", &meshes[2]));
+  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/Cyborg_Weapon.obj", &meshes[3]));
 
   return Ms_Success;
 }
 
 MsResult InitMaterial()
 {
+  OpalBufferInitInfo globalBufferInfo = {};
+  globalBufferInfo.size = sizeof(GlobalInputStruct);
+  globalBufferInfo.usage = Opal_Buffer_Usage_Uniform;
+  MS_ATTEMPT_OPAL(OpalBufferInit(&globalInputBuffer, globalBufferInfo));
+
+  // Global input set
+  const uint32_t inputCount = 1;
+  OpalInputType inputTypes[inputCount] = { Opal_Input_Type_Uniform_Buffer };
+
+  OpalInputLayoutInitInfo globalLayoutInfo = {};
+  globalLayoutInfo.count = inputCount;
+  globalLayoutInfo.pTypes = inputTypes;
+  OpalInputLayout globalLayout;
+  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&globalLayout, globalLayoutInfo));
+
+  OpalMaterialInputValue globalBufferValue = {};
+  globalBufferValue.buffer = globalInputBuffer;
+
+  OpalInputSetInitInfo globalSetInfo = {};
+  globalSetInfo.layout = globalLayout;
+  globalSetInfo.pInputValues = &globalBufferValue;
+  MS_ATTEMPT_OPAL(OpalInputSetInit(&globalInputSet, globalSetInfo));
+
   OpalShaderInitInfo shaderInfos[2] = { 0 };
   shaderInfos[0].type = Opal_Shader_Vertex;
   shaderInfos[0].size = LapisFileRead("D:/Dev/MatSandbox/res/shaders/compiled/nothing.vert.spv", &shaderInfos[0].pSource);
@@ -148,8 +170,8 @@ MsResult InitMaterial()
   OpalMaterialInitInfo matInfo = { 0 };
   matInfo.shaderCount = 2;
   matInfo.pShaders = shaders;
-  matInfo.inputLayoutCount = 0;
-  matInfo.pInputLayouts = NULL;
+  matInfo.inputLayoutCount = 1;
+  matInfo.pInputLayouts = &globalLayout;
   matInfo.pushConstantSize = 0;
   matInfo.renderpass = renderpass;
   matInfo.subpassIndex = 0;
@@ -250,16 +272,51 @@ void RenderImgui()
   ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
 }
 
+float camArmLength = 2.0f;
+Quaternion camRotQuat;
+
+void HandleInput()
+{
+  camArmLength += (LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_K) - LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_I)) * 0.0006f;
+
+  if (LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_Mouse_Right))
+  {
+    camTransform.rotation.y -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_X);
+    camTransform.rotation.x -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_Y);
+    camRotQuat = QuaternionFromEuler(camTransform.rotation);
+    globalStruct.cameraForward = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, -1.0f });
+  }
+
+  camTransform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
+
+  globalStruct.cameraView = Mat4Invert(TransformToMat4(camTransform));
+
+  globalStruct.cameraProjection = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
+  globalStruct.cameraProjection.y.y *= -1;
+
+  globalStruct.viewProj = Mat4MuliplyMat4(globalStruct.cameraProjection, globalStruct.cameraView);
+
+  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_1)) renderedModelIndex = 0;
+  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_2)) renderedModelIndex = 1;
+  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_3)) renderedModelIndex = 2;
+  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_4)) renderedModelIndex = 3;
+
+  OpalBufferPushData(globalInputBuffer, &globalStruct);
+}
+
 MsResult MsUpdate()
 {
   while (!LapisWindowGetShouldClose(msWindow.lapis))
   {
     LapisWindowUpdate(msWindow.lapis);
 
+    HandleInput();
+
     OpalRenderBegin(msWindow.opal);
     OpalRenderBeginRenderpass(renderpass, framebuffer);
     OpalRenderBindMaterial(material);
-    OpalRenderMesh(meshes[1]);
+    OpalRenderBindInputSet(globalInputSet, 0);
+    OpalRenderMesh(meshes[renderedModelIndex]);
 
     RenderImgui();
 

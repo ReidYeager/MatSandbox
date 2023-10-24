@@ -74,6 +74,10 @@ MsResult RecreateShader(OpalShaderType type)
 MsResult MsUpdateShader(OpalShaderType type, const char* source)
 {
   MS_ATTEMPT(CompileShader(type, source));
+
+  // TODO : Wait for compilation to complete
+  // Currently will crash if recreation happens before compilation finishes
+
   MS_ATTEMPT(RecreateShader(type));
 
   // Update the material

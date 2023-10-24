@@ -71,30 +71,50 @@ struct MsMeshInfo {
   std::vector<uint32_t> indices;
 };
 
-#define MATSANDBOX_VERT_DEFAULT_SOURCE          \
-  "#version 410\n"                              \
-  "\n"                                          \
-  "layout (location = 0) in vec3 inPosition;\n" \
-  "layout (location = 1) in vec3 inNormal;\n"   \
-  "layout (location = 2) in vec2 inUv;\n"       \
-  "\n"                                          \
-  "layout (location = 0) out vec3 outPos;\n"    \
-  "\n"                                          \
-  "void main()\n"                               \
-  "{\n"                                         \
-  "    outPos = inPosition;\n"                  \
-  "    gl_Position = vec4(inPosition, 1.0);\n"  \
+#define MATSANDBOX_VERT_DEFAULT_SOURCE                          \
+  "#version 460\n"                                              \
+  "\n"                                                          \
+  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n" \
+  "{\n"                                                         \
+  "  mat4 cameraView;\n"                                        \
+  "  mat4 cameraProjection;\n"                                  \
+  "  mat4 viewProj;\n"                                          \
+  "  vec3 cameraForward;\n"                                     \
+  "} global;\n"                                                 \
+  "\n"                                                          \
+  "layout(location = 0) in vec3 inPosition;\n"                  \
+  "layout(location = 1) in vec3 inNormal;\n"                    \
+  "layout(location = 2) in vec2 inUv;\n"                        \
+  "\n"                                                          \
+  "layout(location = 0) out vec3 outPos;\n"                     \
+  "\n"                                                          \
+  "void main()\n"                                               \
+  "{\n"                                                         \
+  "  vec4 p = global.viewProj * vec4(inPosition, 1.0);\n"       \
+  "  outPos = inNormal;\n"                                      \
+  "  gl_Position = p;\n"                                        \
   "}\n"
 
-#define MATSANDBOX_FRAG_DEFAULT_SOURCE        \
-  "#version 410\n"                            \
-  "\n"                                        \
-  "layout(location = 0) in vec3 inPos;\n"     \
-  "layout(location = 0) out vec4 outColor;\n" \
-  "\n"                                        \
-  "void main()\n"                             \
-  "{\n"                                       \
-  "    outColor = vec4(inPos, 1.0);\n"        \
+
+#define MATSANDBOX_FRAG_DEFAULT_SOURCE                                    \
+  "#version 460\n"                                                        \
+  "\n"                                                                    \
+  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"           \
+  "{\n"                                                                   \
+  "  mat4 cameraView;\n"                                                  \
+  "  mat4 cameraProjection;\n"                                            \
+  "  mat4 viewProj;\n"                                                    \
+  "  vec3 cameraForward;\n"                                               \
+  "} global;\n"                                                           \
+  "\n"                                                                    \
+  "layout(location = 0) in vec3 inPos;\n"                                 \
+  "layout(location = 0) out vec4 outColor;\n"                             \
+  "\n"                                                                    \
+  "void main()\n"                                                         \
+  "{\n"                                                                   \
+  "  float d = dot(normalize(global.cameraForward), normalize(inPos));\n" \
+  "  d = pow(d * -0.5 + 0.5, 1);\n"                                       \
+  "  outColor = vec4(d);\n"                                               \
   "}\n"
 
 #endif // !MATSANDBOX_DEFINES_H
