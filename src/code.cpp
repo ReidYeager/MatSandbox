@@ -57,7 +57,7 @@ MsResult RecreateShader(OpalShaderType type)
   bool isFragment = type == Opal_Shader_Fragment;
 
   OpalShader* shader = &shaders[isFragment];
-  OpalShaderShutdown(shader);
+  //OpalShaderShutdown(shader);
   OpalShaderInitInfo initInfo = {};
   initInfo.type = isFragment ? Opal_Shader_Fragment : Opal_Shader_Vertex;
   initInfo.size = LapisFileRead("NewShaderCompiled.spv", &initInfo.pSource);

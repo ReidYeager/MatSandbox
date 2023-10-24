@@ -28,14 +28,15 @@ OpalBuffer globalInputBuffer;
 Transform camTransform = transformIdentity;
 struct GlobalInputStruct
 {
-  Mat4 cameraView;
-  Mat4 cameraProjection;
-  Mat4 viewProj;
-  Vec3 cameraForward;
+  Mat4 cameraView = mat4Identity;
+  Mat4 cameraProjection = mat4Identity;
+  Mat4 viewProj = mat4Identity;
+  Vec3 cameraForward = {0.0f, 0.0f, -1.0f};
 } globalStruct;
 
 void ImguiVkResultCheck(VkResult error) {}
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+void HandleInput();
 
 void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -177,6 +178,9 @@ MsResult InitMaterial()
   matInfo.subpassIndex = 0;
   MS_ATTEMPT_OPAL(OpalMaterialInit(&material, matInfo));
 
+  MsUpdateShader(Opal_Shader_Vertex, MATSANDBOX_VERT_DEFAULT_SOURCE);
+  MsUpdateShader(Opal_Shader_Fragment, MATSANDBOX_FRAG_DEFAULT_SOURCE);
+
   return Ms_Success;
 }
 
@@ -222,7 +226,72 @@ MsResult MsInit()
   MS_ATTEMPT(InitMaterial());
   MS_ATTEMPT(InitImgui());
 
+  HandleInput();
+
   return Ms_Success;
+}
+
+void RenderImguiMatrix(const char* title, Mat4* data)
+{
+  char titles[16][64];
+
+  for (uint32_t i = 0; i < 16; i++)
+  {
+    char col, row;
+
+    switch (i % 4)
+    {
+      case 0: col = 'x'; break;
+      case 1: col = 'y'; break;
+      case 2: col = 'z'; break;
+      case 3: col = 'w'; break;
+    }
+
+    switch (i / 4)
+    {
+    case 0: row = 'x'; break;
+    case 1: row = 'y'; break;
+    case 2: row = 'z'; break;
+    case 3: row = 'w'; break;
+    }
+
+    sprintf(titles[i], "##%s-%c%c", title, row, col);
+  }
+
+  ImGui::Columns(4);
+  ImGui::DragFloat(titles[ 0], &data->x.x, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 1], &data->y.x, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 2], &data->z.x, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 3], &data->w.x, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 4], &data->x.y, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 5], &data->y.y, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 6], &data->z.y, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 7], &data->w.y, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 8], &data->x.z, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 9], &data->y.z, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[10], &data->z.z, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[11], &data->w.z, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[12], &data->x.w, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[13], &data->y.w, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[14], &data->z.w, 0.1f);
+  ImGui::NextColumn();
+  ImGui::DragFloat(titles[ 15], &data->w.w, 0.1f);
+
+  ImGui::Columns(1);
 }
 
 void RenderImgui()
@@ -267,6 +336,20 @@ void RenderImgui()
     ImGuiInputTextFlags_AllowTabInput);
 
   ImGui::End();
+
+  ImGui::Begin("Properties");
+
+  ImGui::Text("Camera view matrix");
+  RenderImguiMatrix("Cam view matrix", &globalStruct.cameraView);
+  ImGui::Text("Camera projection matrix");
+  RenderImguiMatrix("Cam proj matrix", &globalStruct.cameraProjection);
+  ImGui::Text("Camera viewProjection matrix");
+  RenderImguiMatrix("Cam viewproj matrix", &globalStruct.viewProj);
+  ImGui::DragFloat3("Camera forward vector", globalStruct.cameraForward.elements);
+  globalStruct.cameraForward = Vec3Normalize(globalStruct.cameraForward);
+
+  ImGui::End();
+
   ImGui::Render();
   ImDrawData* drawData = ImGui::GetDrawData();
   ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
@@ -285,23 +368,18 @@ void HandleInput()
     camTransform.rotation.x -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_Y);
     camRotQuat = QuaternionFromEuler(camTransform.rotation);
     globalStruct.cameraForward = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, -1.0f });
+
+    camTransform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
+    globalStruct.cameraView = Mat4Invert(TransformToMat4(camTransform));
+    globalStruct.cameraProjection = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
+    globalStruct.cameraProjection.y.y *= -1;
   }
-
-  camTransform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
-
-  globalStruct.cameraView = Mat4Invert(TransformToMat4(camTransform));
-
-  globalStruct.cameraProjection = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
-  globalStruct.cameraProjection.y.y *= -1;
-
   globalStruct.viewProj = Mat4MuliplyMat4(globalStruct.cameraProjection, globalStruct.cameraView);
 
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_1)) renderedModelIndex = 0;
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_2)) renderedModelIndex = 1;
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_3)) renderedModelIndex = 2;
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_4)) renderedModelIndex = 3;
-
-  OpalBufferPushData(globalInputBuffer, &globalStruct);
 }
 
 MsResult MsUpdate()
@@ -311,6 +389,7 @@ MsResult MsUpdate()
     LapisWindowUpdate(msWindow.lapis);
 
     HandleInput();
+    OpalBufferPushData(globalInputBuffer, &globalStruct);
 
     OpalRenderBegin(msWindow.opal);
     OpalRenderBeginRenderpass(renderpass, framebuffer);
