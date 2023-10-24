@@ -23,8 +23,6 @@ add_executable(MatSandbox
   # App =====
   src/main.cpp
   src/defines.h
-  src/window.h
-  src/window.cpp
   src/code.cpp
   src/mesh.cpp
 )

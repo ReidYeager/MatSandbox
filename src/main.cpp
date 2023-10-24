@@ -1,6 +1,5 @@
 
 #include "src/common.h"
-#include "src/window.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_vulkan.h"
@@ -24,12 +23,28 @@ uint32_t selectedMesh = 0;
 OpalMesh meshes[2];
 
 void ImguiVkResultCheck(VkResult error) {}
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-MsResult InitOpalBoilerplate(Vec2U windowExtents)
+void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+}
+
+MsResult InitOpalBoilerplate()
+{
+  LapisWindowInitInfo lapisWindowInfo = {};
+  lapisWindowInfo.fnPlatformInputCallback = LapisInputCallback;
+  lapisWindowInfo.extents = { 1280, 720 };
+  lapisWindowInfo.position = { 100, 100 };
+  lapisWindowInfo.title = "Material with lapis";
+  lapisWindowInfo.resizable = false;
+  LapisWindowInit(lapisWindowInfo, &msWindow.lapis);
+
+  LapisWindowPlatformData windowPlatformData = LapisWindowGetPlatformData(msWindow.lapis);
+
   OpalInitInfo opalInfo = { 0 };
-  opalInfo.windowPlatformInfo.hinstance = msWindow.hinstance;
-  opalInfo.windowPlatformInfo.hwnd = msWindow.hwnd;
+  opalInfo.windowPlatformInfo.hinstance = windowPlatformData.hinstance;
+  opalInfo.windowPlatformInfo.hwnd = windowPlatformData.hwnd;
   opalInfo.debug = false;
   OpalFormat vertexInputFormats[3] = { Opal_Format_RGB32, Opal_Format_RGB32, Opal_Format_RG32 };
   opalInfo.vertexStruct.count = 3;
@@ -38,9 +53,9 @@ MsResult InitOpalBoilerplate(Vec2U windowExtents)
   MS_ATTEMPT_OPAL(OpalInit(opalInfo));
   
   OpalWindowInitInfo owInfo = { 0 };
-  owInfo.platformInfo.hinstance = msWindow.hinstance;
-  owInfo.platformInfo.hwnd = msWindow.hwnd;
-  owInfo.extents = windowExtents;
+  owInfo.platformInfo.hinstance = windowPlatformData.hinstance;
+  owInfo.platformInfo.hwnd = windowPlatformData.hwnd;
+  owInfo.extents = lapisWindowInfo.extents;
   MS_ATTEMPT_OPAL(OpalWindowInit(&msWindow.opal, owInfo));
 
   OpalImage windowRenderImage;
@@ -151,7 +166,7 @@ MsResult InitImgui()
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
   ImGui::StyleColorsDark();
 
-  ImGui_ImplWin32_Init(msWindow.hwnd);
+  ImGui_ImplWin32_Init(LapisWindowGetPlatformData(msWindow.lapis).hwnd);
 
   ImGui_ImplVulkan_InitInfo imguiVulkanInfo = { 0 };
   imguiVulkanInfo.Allocator = NULL;
@@ -180,13 +195,7 @@ MsResult InitImgui()
 
 MsResult MsInit()
 {
-  MsbWindowInitInfo windowInitInfo = { 0 };
-  windowInitInfo.extents = { 1280, 720 };
-  windowInitInfo.position = { 100, 100 };
-  windowInitInfo.title = "Retrieving code from textbox";
-  WindowInit(&msWindow, windowInitInfo);
-
-  MS_ATTEMPT(InitOpalBoilerplate(windowInitInfo.extents));
+  MS_ATTEMPT(InitOpalBoilerplate());
   MS_ATTEMPT(InitMeshes());
   MS_ATTEMPT(InitMaterial());
   MS_ATTEMPT(InitImgui());
@@ -243,9 +252,9 @@ void RenderImgui()
 
 MsResult MsUpdate()
 {
-  while (msWindow.isOpen)
+  while (!LapisWindowGetShouldClose(msWindow.lapis))
   {
-    WindowUpdate(&msWindow);
+    LapisWindowUpdate(msWindow.lapis);
 
     OpalRenderBegin(msWindow.opal);
     OpalRenderBeginRenderpass(renderpass, framebuffer);
@@ -274,7 +283,7 @@ void MsShutdown()
   OpalMeshShutdown(&meshes[1]);
 
   OpalShutdown();
-  WindowShutdown(&msWindow);
+  LapisWindowShutdown(&msWindow.lapis);
 }
 
 int main(void)

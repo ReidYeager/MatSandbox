@@ -3,6 +3,8 @@
 #define MATSANDBOX_DEFINES_H
 
 #include <peridot.h>
+#include <opal.h>
+#include <lapis.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -46,6 +48,12 @@ enum MsResult
     return Ms_Fail;              \
   }                              \
 }
+
+typedef struct MsbWindow
+{
+  LapisWindow lapis;
+  OpalWindow opal;
+} MsbWindow;
 
 struct MsVertex {
   Vec3 position;
