@@ -25,6 +25,7 @@ OpalMesh meshes[4];
 
 OpalInputSet globalInputSet;
 OpalBuffer globalInputBuffer;
+Vec3 camFocusPoint = { 0.0f, 0.0f, 0.0f };
 Transform camTransform = transformIdentity;
 struct GlobalInputStruct
 {
@@ -226,6 +227,9 @@ MsResult MsInit()
   MS_ATTEMPT(InitMaterial());
   MS_ATTEMPT(InitImgui());
 
+  globalStruct.cameraProjection = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
+  globalStruct.cameraProjection.y.y *= -1;
+
   HandleInput();
 
   return Ms_Success;
@@ -360,7 +364,7 @@ Quaternion camRotQuat;
 
 void HandleInput()
 {
-  camArmLength += (LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_K) - LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_I)) * 0.0006f;
+  camArmLength -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Wheel) * 0.1f;
 
   if (LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_Mouse_Right))
   {
@@ -368,18 +372,34 @@ void HandleInput()
     camTransform.rotation.x -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_Y);
     camRotQuat = QuaternionFromEuler(camTransform.rotation);
     globalStruct.cameraForward = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, -1.0f });
-
-    camTransform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
-    globalStruct.cameraView = Mat4Invert(TransformToMat4(camTransform));
-    globalStruct.cameraProjection = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
-    globalStruct.cameraProjection.y.y *= -1;
   }
+  else if (LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_Mouse_Middle))
+  {
+    Vec3 camRight = QuaternionMultiplyVec3(camRotQuat, {1.0f, 0.0f, 0.0f});
+    Vec3 camUp = QuaternionMultiplyVec3(camRotQuat, {0.0f, 1.0f, 0.0f});
+
+    camRight = Vec3MultiplyFloat(camRight, -LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_X) * 0.01f * camArmLength);
+    camUp = Vec3MultiplyFloat(camUp, LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_Y) * 0.01f * camArmLength);
+
+    camFocusPoint = Vec3AddVec3(camFocusPoint, camRight);
+    camFocusPoint = Vec3AddVec3(camFocusPoint, camUp);
+  }
+  else if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_F))
+  {
+    camFocusPoint = {0.0f, 0.0f, 0.0f};
+  }
+
+  camTransform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
+  camTransform.position = Vec3AddVec3(camTransform.position, camFocusPoint);
+  globalStruct.cameraView = Mat4Invert(TransformToMat4(camTransform));
   globalStruct.viewProj = Mat4MuliplyMat4(globalStruct.cameraProjection, globalStruct.cameraView);
 
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_1)) renderedModelIndex = 0;
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_2)) renderedModelIndex = 1;
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_3)) renderedModelIndex = 2;
   if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_4)) renderedModelIndex = 3;
+
+  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(msWindow.lapis);
 }
 
 MsResult MsUpdate()
