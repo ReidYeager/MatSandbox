@@ -103,10 +103,10 @@ MsResult InitOpalBoilerplate()
 
 MsResult InitMeshes()
 {
-  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/Sphere.obj", &state.meshes[0]));
-  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/SphereSmooth.obj", &state.meshes[1]));
-  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/Cube.obj", &state.meshes[2]));
-  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/Cyborg_Weapon.obj", &state.meshes[3]));
+  MS_ATTEMPT(LoadMesh(GAME_RESOURCE_PATH "models/Sphere.obj", &state.meshes[0]));
+  MS_ATTEMPT(LoadMesh(GAME_RESOURCE_PATH "models/SphereSmooth.obj", &state.meshes[1]));
+  MS_ATTEMPT(LoadMesh(GAME_RESOURCE_PATH "models/Cube.obj", &state.meshes[2]));
+  MS_ATTEMPT(LoadMesh(GAME_RESOURCE_PATH "models/Cyborg_Weapon.obj", &state.meshes[3]));
 
   return Ms_Success;
 }
@@ -138,9 +138,9 @@ MsResult InitMaterial()
 
   OpalShaderInitInfo shaderInfos[2] = { 0 };
   shaderInfos[0].type = Opal_Shader_Vertex;
-  shaderInfos[0].size = LapisFileRead("C:/dev/MatSandbox/res/shaders/compiled/nothing.vert.spv", &shaderInfos[0].pSource);
+  shaderInfos[0].size = LapisFileRead(GAME_RESOURCE_PATH "shaders/compiled/nothing.vert.spv", &shaderInfos[0].pSource);
   shaderInfos[1].type = Opal_Shader_Fragment;
-  shaderInfos[1].size = LapisFileRead("C:/dev/MatSandbox/res/shaders/compiled/nothing.frag.spv", &shaderInfos[1].pSource);
+  shaderInfos[1].size = LapisFileRead(GAME_RESOURCE_PATH "shaders/compiled/nothing.frag.spv", &shaderInfos[1].pSource);
 
   state.shaderCount = 2;
   state.pShaders = LapisMemAllocZeroArray(OpalShader, state.shaderCount);
