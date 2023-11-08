@@ -13,27 +13,7 @@
 #include <string>
 #include <memory>
 
-MsbWindow msWindow;
-OpalImage depthImage;
-OpalRenderpass renderpass;
-OpalFramebuffer framebuffer;
-OpalShader shaders[2] = { 0 };
-OpalMaterial material;
-uint32_t selectedMesh = 0;
-uint32_t renderedModelIndex = 0;
-OpalMesh meshes[4];
-
-OpalInputSet globalInputSet;
-OpalBuffer globalInputBuffer;
-Vec3 camFocusPoint = { 0.0f, 0.0f, 0.0f };
-Transform camTransform = transformIdentity;
-struct GlobalInputStruct
-{
-  Mat4 cameraView = mat4Identity;
-  Mat4 cameraProjection = mat4Identity;
-  Mat4 viewProj = mat4Identity;
-  Vec3 cameraForward = {0.0f, 0.0f, -1.0f};
-} globalStruct;
+MatSandboxState state;
 
 void ImguiVkResultCheck(VkResult error) {}
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -52,9 +32,9 @@ MsResult InitOpalBoilerplate()
   lapisWindowInfo.position = { 100, 100 };
   lapisWindowInfo.title = "Material with lapis";
   lapisWindowInfo.resizable = false;
-  LapisWindowInit(lapisWindowInfo, &msWindow.lapis);
+  LapisWindowInit(lapisWindowInfo, &state.window.lapis);
 
-  LapisWindowPlatformData windowPlatformData = LapisWindowGetPlatformData(msWindow.lapis);
+  LapisWindowPlatformData windowPlatformData = LapisWindowGetPlatformData(state.window.lapis);
 
   OpalInitInfo opalInfo = { 0 };
   opalInfo.windowPlatformInfo.hinstance = windowPlatformData.hinstance;
@@ -70,17 +50,16 @@ MsResult InitOpalBoilerplate()
   owInfo.platformInfo.hinstance = windowPlatformData.hinstance;
   owInfo.platformInfo.hwnd = windowPlatformData.hwnd;
   owInfo.extents = lapisWindowInfo.extents;
-  MS_ATTEMPT_OPAL(OpalWindowInit(&msWindow.opal, owInfo));
+  MS_ATTEMPT_OPAL(OpalWindowInit(&state.window.opal, owInfo));
 
-  OpalImage windowRenderImage;
-  OpalWindowGetBufferImage(msWindow.opal, &windowRenderImage);
+  OpalWindowGetBufferImage(state.window.opal, &state.renderBufferImage);
 
   OpalImageInitInfo dimInfo = { 0 };
   dimInfo.extent = { 1280, 720, 1 };
   dimInfo.format = Opal_Format_D24_S8;
   dimInfo.sampleType = Opal_Sample_Bilinear;
   dimInfo.usage = Opal_Image_Usage_Depth;
-  MS_ATTEMPT_OPAL(OpalImageInit(&depthImage, dimInfo));
+  MS_ATTEMPT_OPAL(OpalImageInit(&state.depthImage, dimInfo));
 
   OpalAttachmentInfo attachments[2] = { 0 };
   attachments[0].clearValue.depthStencil = (OpalDepthStencilValue){ 1, 0 };
@@ -110,24 +89,24 @@ MsResult InitOpalBoilerplate()
   rpInfo.pAttachments = attachments;
   rpInfo.subpassCount = 1;
   rpInfo.pSubpasses = &subpass;
-  MS_ATTEMPT_OPAL(OpalRenderpassInit(&renderpass, rpInfo));
+  MS_ATTEMPT_OPAL(OpalRenderpassInit(&state.renderpass, rpInfo));
 
-  OpalImage framebufferImages[2] = { depthImage, windowRenderImage };
+  OpalImage framebufferImages[2] = { state.depthImage, state.renderBufferImage };
   OpalFramebufferInitInfo fbInfo = { 0 };
   fbInfo.imageCount = 2;
   fbInfo.pImages = framebufferImages;
-  fbInfo.renderpass = renderpass;
-  MS_ATTEMPT_OPAL(OpalFramebufferInit(&framebuffer, fbInfo));
+  fbInfo.renderpass = state.renderpass;
+  MS_ATTEMPT_OPAL(OpalFramebufferInit(&state.framebuffer, fbInfo));
 
   return Ms_Success;
 }
 
 MsResult InitMeshes()
 {
-  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/Sphere.obj", &meshes[0]));
-  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/SphereSmooth.obj", &meshes[1]));
-  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/Cube.obj", &meshes[2]));
-  MS_ATTEMPT(LoadMesh("D:/Dev/Library/res/models/Cyborg_Weapon.obj", &meshes[3]));
+  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/Sphere.obj", &state.meshes[0]));
+  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/SphereSmooth.obj", &state.meshes[1]));
+  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/Cube.obj", &state.meshes[2]));
+  MS_ATTEMPT(LoadMesh("C:/dev/MatSandbox/res/models/Cyborg_Weapon.obj", &state.meshes[3]));
 
   return Ms_Success;
 }
@@ -135,9 +114,9 @@ MsResult InitMeshes()
 MsResult InitMaterial()
 {
   OpalBufferInitInfo globalBufferInfo = {};
-  globalBufferInfo.size = sizeof(GlobalInputStruct);
+  globalBufferInfo.size = sizeof(state.globalInputValues);
   globalBufferInfo.usage = Opal_Buffer_Usage_Uniform;
-  MS_ATTEMPT_OPAL(OpalBufferInit(&globalInputBuffer, globalBufferInfo));
+  MS_ATTEMPT_OPAL(OpalBufferInit(&state.globalInputBuffer, globalBufferInfo));
 
   // Global input set
   const uint32_t inputCount = 1;
@@ -150,34 +129,37 @@ MsResult InitMaterial()
   MS_ATTEMPT_OPAL(OpalInputLayoutInit(&globalLayout, globalLayoutInfo));
 
   OpalMaterialInputValue globalBufferValue = {};
-  globalBufferValue.buffer = globalInputBuffer;
+  globalBufferValue.buffer = state.globalInputBuffer;
 
   OpalInputSetInitInfo globalSetInfo = {};
   globalSetInfo.layout = globalLayout;
   globalSetInfo.pInputValues = &globalBufferValue;
-  MS_ATTEMPT_OPAL(OpalInputSetInit(&globalInputSet, globalSetInfo));
+  MS_ATTEMPT_OPAL(OpalInputSetInit(&state.globalInputSet, globalSetInfo));
 
   OpalShaderInitInfo shaderInfos[2] = { 0 };
   shaderInfos[0].type = Opal_Shader_Vertex;
-  shaderInfos[0].size = LapisFileRead("D:/Dev/MatSandbox/res/shaders/compiled/nothing.vert.spv", &shaderInfos[0].pSource);
+  shaderInfos[0].size = LapisFileRead("C:/dev/MatSandbox/res/shaders/compiled/nothing.vert.spv", &shaderInfos[0].pSource);
   shaderInfos[1].type = Opal_Shader_Fragment;
-  shaderInfos[1].size = LapisFileRead("D:/Dev/MatSandbox/res/shaders/compiled/nothing.frag.spv", &shaderInfos[1].pSource);
+  shaderInfos[1].size = LapisFileRead("C:/dev/MatSandbox/res/shaders/compiled/nothing.frag.spv", &shaderInfos[1].pSource);
 
-  MS_ATTEMPT_OPAL(OpalShaderInit(&shaders[0], shaderInfos[0]), LapisMemFree(shaderInfos[0].pSource));
-  MS_ATTEMPT_OPAL(OpalShaderInit(&shaders[1], shaderInfos[1]), LapisMemFree(shaderInfos[1].pSource));
+  state.shaderCount = 2;
+  state.pShaders = LapisMemAllocZeroArray(OpalShader, state.shaderCount);
+
+  MS_ATTEMPT_OPAL(OpalShaderInit(&state.pShaders[0], shaderInfos[0]), LapisMemFree(shaderInfos[0].pSource));
+  MS_ATTEMPT_OPAL(OpalShaderInit(&state.pShaders[1], shaderInfos[1]), LapisMemFree(shaderInfos[1].pSource));
 
   LapisMemFree(shaderInfos[0].pSource);
   LapisMemFree(shaderInfos[1].pSource);
 
   OpalMaterialInitInfo matInfo = { 0 };
-  matInfo.shaderCount = 2;
-  matInfo.pShaders = shaders;
+  matInfo.shaderCount = state.shaderCount;
+  matInfo.pShaders = state.pShaders;
   matInfo.inputLayoutCount = 1;
   matInfo.pInputLayouts = &globalLayout;
   matInfo.pushConstantSize = 0;
-  matInfo.renderpass = renderpass;
+  matInfo.renderpass = state.renderpass;
   matInfo.subpassIndex = 0;
-  MS_ATTEMPT_OPAL(OpalMaterialInit(&material, matInfo));
+  MS_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
 
   MsUpdateShader(Opal_Shader_Vertex, MATSANDBOX_VERT_DEFAULT_SOURCE);
   MsUpdateShader(Opal_Shader_Fragment, MATSANDBOX_FRAG_DEFAULT_SOURCE);
@@ -193,7 +175,7 @@ MsResult InitImgui()
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
   ImGui::StyleColorsDark();
 
-  ImGui_ImplWin32_Init(LapisWindowGetPlatformData(msWindow.lapis).hwnd);
+  ImGui_ImplWin32_Init(LapisWindowGetPlatformData(state.window.lapis).hwnd);
 
   ImGui_ImplVulkan_InitInfo imguiVulkanInfo = { 0 };
   imguiVulkanInfo.Allocator = NULL;
@@ -206,10 +188,10 @@ MsResult InitImgui()
   imguiVulkanInfo.DescriptorPool = oState.vk.descriptorPool;
   imguiVulkanInfo.Subpass = 0;
   imguiVulkanInfo.MinImageCount = 2;
-  imguiVulkanInfo.ImageCount = msWindow.opal->imageCount;
+  imguiVulkanInfo.ImageCount = state.window.opal->imageCount;
   imguiVulkanInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   imguiVulkanInfo.CheckVkResultFn = ImguiVkResultCheck;
-  ImGui_ImplVulkan_Init(&imguiVulkanInfo, renderpass->vk.renderpass);
+  ImGui_ImplVulkan_Init(&imguiVulkanInfo, state.renderpass->vk.renderpass);
 
   VkCommandBuffer cmd;
   OpalBeginSingleUseCommand(oState.vk.transientCommandPool, &cmd);
@@ -227,9 +209,8 @@ MsResult MsInit()
   MS_ATTEMPT(InitMaterial());
   MS_ATTEMPT(InitImgui());
 
-  globalStruct.cameraProjection = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
-  globalStruct.cameraProjection.y.y *= -1;
-
+  state.globalInputValues.camProj = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
+  state.globalInputValues.camProj.y.y *= -1;
   HandleInput();
 
   return Ms_Success;
@@ -237,7 +218,7 @@ MsResult MsInit()
 
 void RenderImguiMatrix(const char* title, Mat4* data)
 {
-  char titles[16][64];
+  char titles[16][64] = {0};
 
   for (uint32_t i = 0; i < 16; i++)
   {
@@ -344,13 +325,13 @@ void RenderImgui()
   ImGui::Begin("Properties");
 
   ImGui::Text("Camera view matrix");
-  RenderImguiMatrix("Cam view matrix", &globalStruct.cameraView);
+  RenderImguiMatrix("Cam view matrix", &state.globalInputValues.camView);
   ImGui::Text("Camera projection matrix");
-  RenderImguiMatrix("Cam proj matrix", &globalStruct.cameraProjection);
+  RenderImguiMatrix("Cam proj matrix", &state.globalInputValues.camProj);
   ImGui::Text("Camera viewProjection matrix");
-  RenderImguiMatrix("Cam viewproj matrix", &globalStruct.viewProj);
-  ImGui::DragFloat3("Camera forward vector", globalStruct.cameraForward.elements);
-  globalStruct.cameraForward = Vec3Normalize(globalStruct.cameraForward);
+  RenderImguiMatrix("Cam viewproj matrix", &state.globalInputValues.camViewProj);
+  ImGui::DragFloat3("Camera forward vector", state.globalInputValues.camForward.elements);
+  state.globalInputValues.camForward = Vec3Normalize(state.globalInputValues.camForward);
 
   ImGui::End();
 
@@ -364,62 +345,65 @@ Quaternion camRotQuat;
 
 void HandleInput()
 {
-  camArmLength -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Wheel) * 0.1f;
+  camArmLength -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Wheel) * 0.1f;
 
-  if (LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_Mouse_Right))
+  if (LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Mouse_Right)
+    || LapisInputGetValue(state.window.lapis, Lapis_Input_Button_R))
   {
-    camTransform.rotation.y -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_X);
-    camTransform.rotation.x -= LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_Y);
-    camRotQuat = QuaternionFromEuler(camTransform.rotation);
-    globalStruct.cameraForward = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, -1.0f });
+    state.camera.transform.rotation.y -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_X);
+    state.camera.transform.rotation.x -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_Y);
+    camRotQuat = QuaternionFromEuler(state.camera.transform.rotation);
+    state.globalInputValues.camForward = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, -1.0f });
   }
-  else if (LapisInputGetValue(msWindow.lapis, Lapis_Input_Button_Mouse_Middle))
+  else if (LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Mouse_Middle)
+    || LapisInputGetValue(state.window.lapis, Lapis_Input_Button_G))
   {
     Vec3 camRight = QuaternionMultiplyVec3(camRotQuat, {1.0f, 0.0f, 0.0f});
     Vec3 camUp = QuaternionMultiplyVec3(camRotQuat, {0.0f, 1.0f, 0.0f});
 
-    camRight = Vec3MultiplyFloat(camRight, -LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_X) * 0.01f * camArmLength);
-    camUp = Vec3MultiplyFloat(camUp, LapisInputGetValue(msWindow.lapis, Lapis_Input_Axis_Mouse_Delta_Y) * 0.01f * camArmLength);
+    camRight = Vec3MultiplyFloat(camRight, -LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_X) * 0.01f * camArmLength);
+    camUp = Vec3MultiplyFloat(camUp, LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_Y) * 0.01f * camArmLength);
 
-    camFocusPoint = Vec3AddVec3(camFocusPoint, camRight);
-    camFocusPoint = Vec3AddVec3(camFocusPoint, camUp);
+    state.camera.focusPosition = Vec3AddVec3(state.camera.focusPosition, camRight);
+    state.camera.focusPosition = Vec3AddVec3(state.camera.focusPosition, camUp);
   }
-  else if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_F))
+  else if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_F))
   {
-    camFocusPoint = {0.0f, 0.0f, 0.0f};
+    state.camera.focusPosition = {0.0f, 0.0f, 0.0f};
   }
 
-  camTransform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
-  camTransform.position = Vec3AddVec3(camTransform.position, camFocusPoint);
-  globalStruct.cameraView = Mat4Invert(TransformToMat4(camTransform));
-  globalStruct.viewProj = Mat4MuliplyMat4(globalStruct.cameraProjection, globalStruct.cameraView);
+  state.camera.transform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
+  state.camera.transform.position = Vec3AddVec3(state.camera.transform.position, state.camera.focusPosition);
+  state.globalInputValues.camView = Mat4Invert(TransformToMat4(state.camera.transform));
+  state.globalInputValues.camViewProj = Mat4MuliplyMat4(state.globalInputValues.camProj, state.globalInputValues.camView);
 
-  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_1)) renderedModelIndex = 0;
-  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_2)) renderedModelIndex = 1;
-  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_3)) renderedModelIndex = 2;
-  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_4)) renderedModelIndex = 3;
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_1)) state.meshIndex = 0;
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_2)) state.meshIndex = 1;
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_3)) state.meshIndex = 2;
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_4)) state.meshIndex  = 3;
 
-  if (LapisInputOnPressed(msWindow.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(msWindow.lapis);
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
+
+  OpalBufferPushData(state.globalInputBuffer, &state.globalInputValues);
 }
 
 MsResult MsUpdate()
 {
-  while (!LapisWindowGetShouldClose(msWindow.lapis))
+  while (!LapisWindowGetShouldClose(state.window.lapis))
   {
-    LapisWindowUpdate(msWindow.lapis);
+    LapisWindowUpdate(state.window.lapis);
 
     HandleInput();
-    OpalBufferPushData(globalInputBuffer, &globalStruct);
 
-    OpalRenderBegin(msWindow.opal);
-    OpalRenderBeginRenderpass(renderpass, framebuffer);
-    OpalRenderBindMaterial(material);
-    OpalRenderBindInputSet(globalInputSet, 0);
-    OpalRenderMesh(meshes[renderedModelIndex]);
+    OpalRenderBegin(state.window.opal);
+    OpalRenderBeginRenderpass(state.renderpass, state.framebuffer);
+    OpalRenderBindMaterial(state.material);
+    OpalRenderBindInputSet(state.globalInputSet, 0);
+    OpalRenderMesh(state.meshes[state.meshIndex]);
 
     RenderImgui();
 
-    OpalRenderEndRenderpass(renderpass);
+    OpalRenderEndRenderpass(state.renderpass);
     OpalRenderEnd();
   }
 
@@ -428,18 +412,20 @@ MsResult MsUpdate()
 
 void MsShutdown()
 {
-  OpalImageShutdown(&depthImage);
-  OpalShaderShutdown(&shaders[0]);
-  OpalShaderShutdown(&shaders[1]);
-  OpalMaterialShutdown(&material);
-  OpalFramebufferShutdown(&framebuffer);
-  OpalRenderpassShutdown(&renderpass);
+  OpalImageShutdown(&state.depthImage);
+  OpalShaderShutdown(&state.pShaders[0]);
+  OpalShaderShutdown(&state.pShaders[1]);
+  OpalMaterialShutdown(&state.material);
+  OpalFramebufferShutdown(&state.framebuffer);
+  OpalRenderpassShutdown(&state.renderpass);
 
-  OpalMeshShutdown(&meshes[0]);
-  OpalMeshShutdown(&meshes[1]);
+  OpalMeshShutdown(&state.meshes[0]);
+  OpalMeshShutdown(&state.meshes[1]);
+  OpalMeshShutdown(&state.meshes[2]);
+  OpalMeshShutdown(&state.meshes[3]);
 
   OpalShutdown();
-  LapisWindowShutdown(&msWindow.lapis);
+  LapisWindowShutdown(&state.window.lapis);
 }
 
 int main(void)

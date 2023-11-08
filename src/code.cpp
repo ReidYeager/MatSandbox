@@ -56,7 +56,7 @@ MsResult RecreateShader(OpalShaderType type)
 {
   bool isFragment = type == Opal_Shader_Fragment;
 
-  OpalShader* shader = &shaders[isFragment];
+  OpalShader* shader = &state.pShaders[isFragment];
   //OpalShaderShutdown(shader);
   OpalShaderInitInfo initInfo = {};
   initInfo.type = isFragment ? Opal_Shader_Fragment : Opal_Shader_Vertex;
@@ -81,7 +81,7 @@ MsResult MsUpdateShader(OpalShaderType type, const char* source)
   MS_ATTEMPT(RecreateShader(type));
 
   // Update the material
-  OpalMaterialReinit(material);
+  OpalMaterialReinit(state.material);
 
   return Ms_Success;
 }

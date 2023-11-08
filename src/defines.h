@@ -117,4 +117,40 @@ struct MsMeshInfo {
   "  outColor = vec4(d);\n"                                               \
   "}\n"
 
+struct MatSandboxState
+{
+  MsbWindow window;
+
+  OpalImage renderBufferImage;
+  OpalImage depthImage;
+
+  OpalRenderpass renderpass;
+  OpalFramebuffer framebuffer;
+
+  uint32_t meshIndex;
+  OpalMesh meshes[4];
+
+  uint32_t shaderCount;
+  OpalShader* pShaders;
+  OpalMaterial material;
+
+  OpalInputSet globalInputSet;
+  OpalBuffer globalInputBuffer;
+
+  struct
+  {
+    Mat4 camView = mat4Identity;
+    Mat4 camProj = mat4Identity;
+    Mat4 camViewProj = mat4Identity;
+    Vec3 camForward = { 0.0f, 0.0f, -1.0f, };
+  } globalInputValues;
+
+  struct
+  {
+    Vec3 focusPosition = { 0.0f, 0.0f, 0.0f };
+    Transform transform = transformIdentity;
+  } camera;
+};
+extern MatSandboxState state;
+
 #endif // !MATSANDBOX_DEFINES_H
