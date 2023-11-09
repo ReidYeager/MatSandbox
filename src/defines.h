@@ -66,7 +66,8 @@ struct MsVertex {
   }
 };
 
-struct MsMeshInfo {
+struct MsMeshInfo
+{
   std::vector<MsVertex> verts;
   std::vector<uint32_t> indices;
 };
@@ -148,6 +149,7 @@ struct MatSandboxState
   struct
   {
     Vec3 focusPosition = { 0.0f, 0.0f, 0.0f };
+    float armLength = 2.0f;
     Transform transform = transformIdentity;
   } camera;
 };

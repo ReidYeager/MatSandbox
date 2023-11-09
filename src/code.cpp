@@ -3,11 +3,22 @@
 
 FILE* newShaderHlslSource;
 
-MsResult CompileShader(OpalShaderType type, const char* source);
-uint32_t ParseCompilationErrors(FILE* pipe);
+uint32_t ParseCompilationErrors(FILE* pipe)
+{
+  uint32_t errorCount = 0;
 
+  char shellBuffer[2048];
 
-MsResult CompileShader(OpalShaderType type, const char* source)
+  // TODO : Parse and present errors
+  while (fgets(shellBuffer, 1024, pipe) != NULL)
+  {
+    printf("%u : \"%s\"", errorCount, shellBuffer);
+    errorCount++;
+  }
+
+  return errorCount;
+}
+MsResult MsCompileShader(OpalShaderType type, const char* source)
 {
   bool isFragment = type == Opal_Shader_Fragment;
   uint32_t size = strlen(source);
@@ -36,28 +47,11 @@ MsResult CompileShader(OpalShaderType type, const char* source)
   return Ms_Success;
 }
 
-uint32_t ParseCompilationErrors(FILE* pipe)
-{
-  uint32_t errorCount = 0;
-
-  char shellBuffer[2048];
-
-  // TODO : Parse and handle errors
-  while (fgets(shellBuffer, 1024, pipe) != NULL)
-  {
-    printf("%u : \"%s\"", errorCount, shellBuffer);
-    errorCount++;
-  }
-
-  return errorCount;
-}
-
-MsResult RecreateShader(OpalShaderType type)
+MsResult MsRecreateShader(OpalShaderType type)
 {
   bool isFragment = type == Opal_Shader_Fragment;
 
   OpalShader* shader = &state.pShaders[isFragment];
-  //OpalShaderShutdown(shader);
   OpalShaderInitInfo initInfo = {};
   initInfo.type = isFragment ? Opal_Shader_Fragment : Opal_Shader_Vertex;
   initInfo.size = LapisFileRead("NewShaderCompiled.spv", &initInfo.pSource);
@@ -73,12 +67,12 @@ MsResult RecreateShader(OpalShaderType type)
 
 MsResult MsUpdateShader(OpalShaderType type, const char* source)
 {
-  MS_ATTEMPT(CompileShader(type, source));
+  MS_ATTEMPT(MsCompileShader(type, source));
 
   // TODO : Wait for compilation to complete
   // Currently will crash if recreation happens before compilation finishes
 
-  MS_ATTEMPT(RecreateShader(type));
+  MS_ATTEMPT(MsRecreateShader(type));
 
   // Update the material
   OpalMaterialReinit(state.material);

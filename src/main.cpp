@@ -136,20 +136,12 @@ MsResult InitMaterial()
   globalSetInfo.pInputValues = &globalBufferValue;
   MS_ATTEMPT_OPAL(OpalInputSetInit(&state.globalInputSet, globalSetInfo));
 
-  OpalShaderInitInfo shaderInfos[2] = { 0 };
-  shaderInfos[0].type = Opal_Shader_Vertex;
-  shaderInfos[0].size = LapisFileRead(GAME_RESOURCE_PATH "shaders/compiled/nothing.vert.spv", &shaderInfos[0].pSource);
-  shaderInfos[1].type = Opal_Shader_Fragment;
-  shaderInfos[1].size = LapisFileRead(GAME_RESOURCE_PATH "shaders/compiled/nothing.frag.spv", &shaderInfos[1].pSource);
-
   state.shaderCount = 2;
   state.pShaders = LapisMemAllocZeroArray(OpalShader, state.shaderCount);
-
-  MS_ATTEMPT_OPAL(OpalShaderInit(&state.pShaders[0], shaderInfos[0]), LapisMemFree(shaderInfos[0].pSource));
-  MS_ATTEMPT_OPAL(OpalShaderInit(&state.pShaders[1], shaderInfos[1]), LapisMemFree(shaderInfos[1].pSource));
-
-  LapisMemFree(shaderInfos[0].pSource);
-  LapisMemFree(shaderInfos[1].pSource);
+  MsCompileShader(Opal_Shader_Vertex, MATSANDBOX_VERT_DEFAULT_SOURCE);
+  MsRecreateShader(Opal_Shader_Vertex);
+  MsCompileShader(Opal_Shader_Fragment, MATSANDBOX_FRAG_DEFAULT_SOURCE);
+  MsRecreateShader(Opal_Shader_Fragment);
 
   OpalMaterialInitInfo matInfo = { 0 };
   matInfo.shaderCount = state.shaderCount;
@@ -160,9 +152,6 @@ MsResult InitMaterial()
   matInfo.renderpass = state.renderpass;
   matInfo.subpassIndex = 0;
   MS_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
-
-  MsUpdateShader(Opal_Shader_Vertex, MATSANDBOX_VERT_DEFAULT_SOURCE);
-  MsUpdateShader(Opal_Shader_Fragment, MATSANDBOX_FRAG_DEFAULT_SOURCE);
 
   return Ms_Success;
 }
@@ -202,6 +191,19 @@ MsResult InitImgui()
   return Ms_Success;
 }
 
+void UpdateCameraValues()
+{
+  Quaternion camRotQuat = QuaternionFromEuler(state.camera.transform.rotation);
+
+  state.globalInputValues.camForward = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, -1.0f });
+
+  state.camera.transform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, state.camera.armLength });
+  state.camera.transform.position = Vec3AddVec3(state.camera.transform.position, state.camera.focusPosition);
+  state.globalInputValues.camView = Mat4Invert(TransformToMat4(state.camera.transform));
+
+  state.globalInputValues.camViewProj = Mat4MuliplyMat4(state.globalInputValues.camProj, state.globalInputValues.camView);
+}
+
 MsResult MsInit()
 {
   MS_ATTEMPT(InitOpalBoilerplate());
@@ -211,71 +213,46 @@ MsResult MsInit()
 
   state.globalInputValues.camProj = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
   state.globalInputValues.camProj.y.y *= -1;
-  HandleInput();
+
+  UpdateCameraValues();
+  OpalBufferPushData(state.globalInputBuffer, &state.globalInputValues);
 
   return Ms_Success;
 }
 
 void RenderImguiMatrix(const char* title, Mat4* data)
 {
-  char titles[16][64] = {0};
-
-  for (uint32_t i = 0; i < 16; i++)
-  {
-    char col, row;
-
-    switch (i % 4)
-    {
-      case 0: col = 'x'; break;
-      case 1: col = 'y'; break;
-      case 2: col = 'z'; break;
-      case 3: col = 'w'; break;
-    }
-
-    switch (i / 4)
-    {
-    case 0: row = 'x'; break;
-    case 1: row = 'y'; break;
-    case 2: row = 'z'; break;
-    case 3: row = 'w'; break;
-    }
-
-    sprintf(titles[i], "##%s-%c%c", title, row, col);
-  }
+  static char titleBuffer[128] = {0};
 
   ImGui::Columns(4);
-  ImGui::DragFloat(titles[ 0], &data->x.x, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 1], &data->y.x, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 2], &data->z.x, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 3], &data->w.x, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 4], &data->x.y, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 5], &data->y.y, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 6], &data->z.y, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 7], &data->w.y, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 8], &data->x.z, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 9], &data->y.z, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[10], &data->z.z, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[11], &data->w.z, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[12], &data->x.w, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[13], &data->y.w, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[14], &data->z.w, 0.1f);
-  ImGui::NextColumn();
-  ImGui::DragFloat(titles[ 15], &data->w.w, 0.1f);
+  for (uint32_t row = 0; row < 4; row++)
+  for (uint32_t column = 0; column < 4; column++)
+  {
+    char colChar, rowChar;
 
+    switch (column)
+    {
+      case 0: colChar = 'x'; break;
+      case 1: colChar = 'y'; break;
+      case 2: colChar = 'z'; break;
+      case 3: colChar = 'w'; break;
+    }
+
+    switch (row)
+    {
+    case 0: rowChar = 'x'; break;
+    case 1: rowChar = 'y'; break;
+    case 2: rowChar = 'z'; break;
+    case 3: rowChar = 'w'; break;
+    }
+
+    sprintf(titleBuffer, "##%s-%c%c", title, rowChar, colChar);
+
+    {
+      ImGui::DragFloat(titleBuffer, &data->elements[(4 * column) + row], 0.1f);
+      ImGui::NextColumn();
+    }
+  }
   ImGui::Columns(1);
 }
 
@@ -340,20 +317,16 @@ void RenderImgui()
   ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
 }
 
-float camArmLength = 2.0f;
-Quaternion camRotQuat;
-
 void HandleInput()
 {
-  camArmLength -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Wheel) * 0.1f;
+  Quaternion camRotQuat = QuaternionFromEuler(state.camera.transform.rotation);
+  state.camera.armLength -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Wheel) * 0.1f;
 
   if (LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Mouse_Right)
     || LapisInputGetValue(state.window.lapis, Lapis_Input_Button_R))
   {
     state.camera.transform.rotation.y -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_X);
     state.camera.transform.rotation.x -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_Y);
-    camRotQuat = QuaternionFromEuler(state.camera.transform.rotation);
-    state.globalInputValues.camForward = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, -1.0f });
   }
   else if (LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Mouse_Middle)
     || LapisInputGetValue(state.window.lapis, Lapis_Input_Button_G))
@@ -361,8 +334,8 @@ void HandleInput()
     Vec3 camRight = QuaternionMultiplyVec3(camRotQuat, {1.0f, 0.0f, 0.0f});
     Vec3 camUp = QuaternionMultiplyVec3(camRotQuat, {0.0f, 1.0f, 0.0f});
 
-    camRight = Vec3MultiplyFloat(camRight, -LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_X) * 0.01f * camArmLength);
-    camUp = Vec3MultiplyFloat(camUp, LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_Y) * 0.01f * camArmLength);
+    camRight = Vec3MultiplyFloat(camRight, -LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_X) * 0.01f * state.camera.armLength);
+    camUp = Vec3MultiplyFloat(camUp, LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_Y) * 0.01f * state.camera.armLength);
 
     state.camera.focusPosition = Vec3AddVec3(state.camera.focusPosition, camRight);
     state.camera.focusPosition = Vec3AddVec3(state.camera.focusPosition, camUp);
@@ -372,19 +345,12 @@ void HandleInput()
     state.camera.focusPosition = {0.0f, 0.0f, 0.0f};
   }
 
-  state.camera.transform.position = QuaternionMultiplyVec3(camRotQuat, { 0.0f, 0.0f, camArmLength });
-  state.camera.transform.position = Vec3AddVec3(state.camera.transform.position, state.camera.focusPosition);
-  state.globalInputValues.camView = Mat4Invert(TransformToMat4(state.camera.transform));
-  state.globalInputValues.camViewProj = Mat4MuliplyMat4(state.globalInputValues.camProj, state.globalInputValues.camView);
-
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_1)) state.meshIndex = 0;
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_2)) state.meshIndex = 1;
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_3)) state.meshIndex = 2;
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_4)) state.meshIndex  = 3;
 
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
-
-  OpalBufferPushData(state.globalInputBuffer, &state.globalInputValues);
 }
 
 MsResult MsUpdate()
@@ -394,6 +360,9 @@ MsResult MsUpdate()
     LapisWindowUpdate(state.window.lapis);
 
     HandleInput();
+
+    UpdateCameraValues();
+    OpalBufferPushData(state.globalInputBuffer, &state.globalInputValues);
 
     OpalRenderBegin(state.window.opal);
     OpalRenderBeginRenderpass(state.renderpass, state.framebuffer);
