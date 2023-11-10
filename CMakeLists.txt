@@ -21,10 +21,22 @@ add_executable(MatSandbox
   ${ImguiFiles}
 
   # App =====
-  src/main.cpp
   src/defines.h
-  src/code.cpp
+  src/common.h
+
+  src/main.cpp
+  src/core_initialization.cpp
+  src/core_mainLoop.cpp
+  src/core_shutdown.cpp
+
+  src/camera.cpp
+
+  src/compilation.cpp
+  src/material.cpp
+
   src/mesh.cpp
+
+  src/ui.cpp
 )
 
 target_include_directories (MatSandbox PUBLIC

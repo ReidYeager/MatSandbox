@@ -20,6 +20,8 @@
 #error "Unsupported platform"
 #endif
 
+#define SHADER_NAME_MAX_LENGTH 64
+
 enum MsResult
 {
   Ms_Success,
@@ -47,6 +49,18 @@ enum MsResult
     }                            \
     return Ms_Fail;              \
   }                              \
+}
+
+#define MS_ATTEMPT_LAPIS(fn, ...) \
+{                                 \
+  LapisResult result = (fn);      \
+  if (result != Lapis_Success)    \
+  {                               \
+    {                             \
+      __VA_ARGS__;                \
+    }                             \
+    return Ms_Fail;               \
+  }                               \
 }
 
 typedef struct MsbWindow
@@ -151,6 +165,7 @@ struct MatSandboxState
     Vec3 focusPosition = { 0.0f, 0.0f, 0.0f };
     float armLength = 2.0f;
     Transform transform = transformIdentity;
+    Quaternion rotationQuat;
   } camera;
 };
 extern MatSandboxState state;
