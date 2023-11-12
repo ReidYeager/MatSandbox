@@ -171,7 +171,7 @@ MsResult MsUpdateMaterial()
   OpalInputLayout layouts[2] = { state.globalInputLayout, state.materialInfo.inputLayout };
   matInfo.pInputLayouts = layouts;
   matInfo.pushConstantSize = 0;
-  matInfo.renderpass = state.renderpass;
+  matInfo.renderpass = state.sceneRenderpass;
   matInfo.subpassIndex = 0;
   MS_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
 

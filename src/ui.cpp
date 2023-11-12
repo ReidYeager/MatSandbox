@@ -54,6 +54,8 @@ MsResult RenderImguiUi()
   ImGui_ImplWin32_NewFrame();
   ImGui::NewFrame();
 
+  ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
   // =====
   // Vert
   // =====
@@ -102,6 +104,11 @@ MsResult RenderImguiUi()
   ImGui::DragFloat3("Camera forward vector", state.globalInputValues.camForward.elements);
   state.globalInputValues.camForward = Vec3Normalize(state.globalInputValues.camForward);
 
+  ImGui::End();
+
+  ImGui::Begin("Scene");
+  ImVec2 sceneExtents = { (float)state.sceneImage->extents.width, (float)state.sceneImage->extents.height };
+  ImGui::Image(state.uiSceneImageInputSet->vk.descriptorSet, sceneExtents);
   ImGui::End();
 
   ImGui::Render();

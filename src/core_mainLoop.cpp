@@ -65,16 +65,20 @@ MsResult MsUpdate()
     MS_ATTEMPT(UpdateCamera());
 
     MS_ATTEMPT_OPAL(OpalRenderBegin(state.window.opal));
-    OpalRenderBeginRenderpass(state.renderpass, state.framebuffer);
+
+    // Scene
+    OpalRenderBeginRenderpass(state.sceneRenderpass, state.sceneFramebuffer);
     OpalRenderBindMaterial(state.material);
     UpdateMaterialValues();
     OpalRenderBindInputSet(state.globalInputSet, 0);
     OpalRenderBindInputSet(state.materialInfo.inputSet, 1);
     OpalRenderMesh(state.meshes[state.meshIndex]);
+    OpalRenderEndRenderpass(state.sceneRenderpass);
 
+    // Ui
+    OpalRenderBeginRenderpass(state.uiRenderpass, state.uiFramebuffer);
     MS_ATTEMPT(RenderUi());
-
-    OpalRenderEndRenderpass(state.renderpass);
+    OpalRenderEndRenderpass(state.uiRenderpass);
     MS_ATTEMPT_OPAL(OpalRenderEnd());
   }
 

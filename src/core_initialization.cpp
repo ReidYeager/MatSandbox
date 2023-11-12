@@ -1,7 +1,9 @@
 
 #include "src/common.h"
 
-MsResult InitOpalBoilerplate();
+MsResult InitWindow();
+MsResult InitSceneRenderResources();
+MsResult InitUiRenderResources();
 MsResult InitMaterial();
 MsResult InitMeshes();
 MsResult InitImgui();
@@ -15,7 +17,9 @@ void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 MsResult MsInit()
 {
-  MS_ATTEMPT(InitOpalBoilerplate());
+  MS_ATTEMPT(InitWindow());
+  MS_ATTEMPT(InitSceneRenderResources());
+  MS_ATTEMPT(InitUiRenderResources());
   MS_ATTEMPT(InitMaterial());
   MS_ATTEMPT(InitMeshes());
   MS_ATTEMPT(InitImgui());
@@ -28,7 +32,7 @@ MsResult MsInit()
   return Ms_Success;
 }
 
-MsResult InitOpalBoilerplate()
+MsResult InitWindow()
 {
   LapisWindowInitInfo lapisWindowInfo = {};
   lapisWindowInfo.fnPlatformInputCallback = LapisInputCallback;
@@ -58,13 +62,26 @@ MsResult InitOpalBoilerplate()
 
   OpalWindowGetBufferImage(state.window.opal, &state.renderBufferImage);
 
-  OpalImageInitInfo dimInfo = { 0 };
-  dimInfo.extent = { 1280, 720, 1 };
-  dimInfo.format = Opal_Format_D24_S8;
-  dimInfo.sampleType = Opal_Sample_Bilinear;
-  dimInfo.usage = Opal_Image_Usage_Depth;
-  MS_ATTEMPT_OPAL(OpalImageInit(&state.depthImage, dimInfo));
+  return Ms_Success;
+}
 
+MsResult InitSceneRenderResources()
+{
+  OpalImageInitInfo depthImageInfo = { 0 };
+  depthImageInfo.extent = { 1280, 720, 1 };
+  depthImageInfo.format = Opal_Format_D24_S8;
+  depthImageInfo.sampleType = Opal_Sample_Bilinear;
+  depthImageInfo.usage = Opal_Image_Usage_Depth;
+  MS_ATTEMPT_OPAL(OpalImageInit(&state.depthImage, depthImageInfo));
+
+  OpalImageInitInfo sceneImageInfo = { 0 };
+  sceneImageInfo.extent = { 1280, 720, 1 };
+  sceneImageInfo.format = Opal_Format_RGBA8;
+  sceneImageInfo.sampleType = Opal_Sample_Bilinear;
+  sceneImageInfo.usage = Opal_Image_Usage_Color | Opal_Image_Usage_Uniform;
+  MS_ATTEMPT_OPAL(OpalImageInit(&state.sceneImage, sceneImageInfo));
+
+  // Renderpass init
   OpalAttachmentInfo attachments[2] = { 0 };
   attachments[0].clearValue.depthStencil = (OpalDepthStencilValue){ 1, 0 };
   attachments[0].format = Opal_Format_D24_S8;
@@ -93,14 +110,66 @@ MsResult InitOpalBoilerplate()
   rpInfo.pAttachments = attachments;
   rpInfo.subpassCount = 1;
   rpInfo.pSubpasses = &subpass;
-  MS_ATTEMPT_OPAL(OpalRenderpassInit(&state.renderpass, rpInfo));
+  MS_ATTEMPT_OPAL(OpalRenderpassInit(&state.sceneRenderpass, rpInfo));
 
-  OpalImage framebufferImages[2] = { state.depthImage, state.renderBufferImage };
+  // Framebuffer init
+  OpalImage framebufferImages[2] = { state.depthImage, state.sceneImage };
   OpalFramebufferInitInfo fbInfo = { 0 };
   fbInfo.imageCount = 2;
   fbInfo.pImages = framebufferImages;
-  fbInfo.renderpass = state.renderpass;
-  MS_ATTEMPT_OPAL(OpalFramebufferInit(&state.framebuffer, fbInfo));
+  fbInfo.renderpass = state.sceneRenderpass;
+  MS_ATTEMPT_OPAL(OpalFramebufferInit(&state.sceneFramebuffer, fbInfo));
+
+  return Ms_Success;
+}
+
+MsResult InitUiRenderResources()
+{
+  // Renderpass init
+  OpalAttachmentInfo attachment;
+  attachment.clearValue.color = (OpalColorValue){ 0.1f, 0.1f, 0.4f, 1.0f };
+  attachment.format = Opal_Format_BGRA8;
+  attachment.loadOp = Opal_Attachment_Op_Clear;
+  attachment.shouldStore = true;
+  attachment.usage = Opal_Attachment_Usage_Presented;
+
+  uint32_t colorIndices[1] = { 0 };
+  OpalSubpassInfo subpass = { 0 };
+  subpass.depthAttachmentIndex = OPAL_DEPTH_ATTACHMENT_NONE;
+  subpass.colorAttachmentCount = 1;
+  subpass.pColorAttachmentIndices = colorIndices;
+  subpass.inputAttachmentCount = 0;
+  subpass.pInputColorAttachmentIndices = NULL;
+
+  OpalRenderpassInitInfo rpInfo = { 0 };
+  rpInfo.dependencyCount = 0;
+  rpInfo.pDependencies = NULL;
+  rpInfo.imageCount = 1;
+  rpInfo.pAttachments = &attachment;
+  rpInfo.subpassCount = 1;
+  rpInfo.pSubpasses = &subpass;
+  MS_ATTEMPT_OPAL(OpalRenderpassInit(&state.uiRenderpass, rpInfo));
+
+  // Framebuffer init
+  OpalFramebufferInitInfo fbInfo = { 0 };
+  fbInfo.imageCount = 1;
+  fbInfo.pImages = &state.renderBufferImage;
+  fbInfo.renderpass = state.uiRenderpass;
+  MS_ATTEMPT_OPAL(OpalFramebufferInit(&state.uiFramebuffer, fbInfo));
+
+  OpalInputLayoutInitInfo layoutInfo = { 0 };
+  OpalInputType type = Opal_Input_Type_Samped_Image;
+  layoutInfo.count = 1;
+  layoutInfo.pTypes = &type;
+  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&state.uiSceneImageInputLayout, layoutInfo));
+
+  OpalMaterialInputValue inputValue = { 0 };
+  inputValue.image = state.sceneImage;
+
+  OpalInputSetInitInfo setInfo = { 0 };
+  setInfo.layout = state.uiSceneImageInputLayout;
+  setInfo.pInputValues = &inputValue;
+  MS_ATTEMPT_OPAL(OpalInputSetInit(&state.uiSceneImageInputSet, setInfo));
 
   return Ms_Success;
 }
@@ -157,7 +226,7 @@ MsResult InitMaterial()
   OpalInputLayout layouts[2] = { state.globalInputLayout, state.materialInfo.inputLayout };
   matInfo.pInputLayouts = layouts;
   matInfo.pushConstantSize = 0;
-  matInfo.renderpass = state.renderpass;
+  matInfo.renderpass = state.sceneRenderpass;
   matInfo.subpassIndex = 0;
   MS_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
 
@@ -180,6 +249,7 @@ MsResult InitImgui()
   ImGui::CreateContext();
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   ImGui::StyleColorsDark();
 
   ImGui_ImplWin32_Init(LapisWindowGetPlatformData(state.window.lapis).hwnd);
@@ -198,7 +268,7 @@ MsResult InitImgui()
   imguiVulkanInfo.ImageCount = state.window.opal->imageCount;
   imguiVulkanInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   imguiVulkanInfo.CheckVkResultFn = ImguiVkResultCheck;
-  ImGui_ImplVulkan_Init(&imguiVulkanInfo, state.renderpass->vk.renderpass);
+  ImGui_ImplVulkan_Init(&imguiVulkanInfo, state.uiRenderpass->vk.renderpass);
 
   VkCommandBuffer cmd;
   OpalBeginSingleUseCommand(oState.vk.transientCommandPool, &cmd);

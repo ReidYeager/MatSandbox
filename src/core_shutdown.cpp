@@ -33,8 +33,10 @@ void MsShutdown()
   OpalShaderShutdown(&state.pShaders[0]);
   OpalShaderShutdown(&state.pShaders[1]);
   OpalMaterialShutdown(&state.material);
-  OpalFramebufferShutdown(&state.framebuffer);
-  OpalRenderpassShutdown(&state.renderpass);
+  OpalFramebufferShutdown(&state.uiFramebuffer);
+  OpalRenderpassShutdown(&state.uiRenderpass);
+  OpalFramebufferShutdown(&state.sceneFramebuffer);
+  OpalRenderpassShutdown(&state.sceneRenderpass);
 
   OpalMeshShutdown(&state.meshes[0]);
   OpalMeshShutdown(&state.meshes[1]);

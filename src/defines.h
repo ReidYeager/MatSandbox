@@ -211,11 +211,18 @@ struct MatSandboxState
 {
   MsbWindow window;
 
-  OpalImage renderBufferImage;
+  OpalImage sceneImage;
   OpalImage depthImage;
+  OpalImage renderBufferImage;
 
-  OpalRenderpass renderpass;
-  OpalFramebuffer framebuffer;
+
+  OpalRenderpass sceneRenderpass;
+  OpalFramebuffer sceneFramebuffer;
+
+  OpalInputLayout uiSceneImageInputLayout;
+  OpalInputSet uiSceneImageInputSet;
+  OpalRenderpass uiRenderpass;
+  OpalFramebuffer uiFramebuffer;
 
   uint32_t meshIndex;
   OpalMesh meshes[4];
