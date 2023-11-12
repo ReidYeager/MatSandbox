@@ -11,6 +11,7 @@ target_include_directories (ExternalDeps INTERFACE
   Peridot/include/
   Lapis/include/
   Opal/include/
+  imgui/
   ./
 )
 

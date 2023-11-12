@@ -37,11 +37,17 @@ add_executable(MatSandbox
   src/mesh.cpp
 
   src/ui.cpp
+
+  external/imgui/imgui.cpp
+  external/imgui/imgui_draw.cpp
+  external/imgui/imgui_tables.cpp
+  external/imgui/imgui_widgets.cpp
+  external/imgui/backends/imgui_impl_vulkan.cpp
+  external/imgui/backends/imgui_impl_win32.cpp
 )
 
 target_include_directories (MatSandbox PUBLIC
   ./
-  ./src/imgui/
   ExternalDeps
   ${Vulkan_INCLUDE_DIRS}
 )

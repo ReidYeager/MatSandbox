@@ -4,13 +4,13 @@
 
 #include "src/defines.h"
 
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_vulkan.h"
-#include "imgui/imgui_impl_win32.h"
-
 #include <lapis.h>
 #include <opal.h>
 #include <peridot.h>
+
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_vulkan.h>
+#include <imgui/backends/imgui_impl_win32.h>
 
 #include <stdio.h>
 #include <string>
