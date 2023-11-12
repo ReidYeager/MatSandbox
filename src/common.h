@@ -30,7 +30,9 @@ MsResult RenderUi();
 const char* GetShaderTypeExtension(OpalShaderType type);
 MsResult MsCompileShader(OpalShaderType type, const char* source);
 MsResult MsUpdateShader(OpalShaderType type);
+MsResult MsUpdateMaterialInputLayoutAndSet();
 MsResult MsUpdateMaterial();
+uint32_t MsBufferElementSize(MsBufferElementType element);
 
 MsResult LoadMesh(const char* path, OpalMesh* outMesh);
 

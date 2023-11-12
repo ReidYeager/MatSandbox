@@ -33,7 +33,7 @@ MsResult InitOpalBoilerplate()
   LapisWindowInitInfo lapisWindowInfo = {};
   lapisWindowInfo.fnPlatformInputCallback = LapisInputCallback;
   lapisWindowInfo.extents = { 1280, 720 };
-  lapisWindowInfo.position = { 100, 100 };
+  lapisWindowInfo.position = { 1800, 100 };
   lapisWindowInfo.title = "Material with lapis";
   lapisWindowInfo.resizable = false;
   LapisWindowInit(lapisWindowInfo, &state.window.lapis);
@@ -119,14 +119,13 @@ MsResult InitMaterial()
   OpalInputLayoutInitInfo globalLayoutInfo = {};
   globalLayoutInfo.count = inputCount;
   globalLayoutInfo.pTypes = inputTypes;
-  OpalInputLayout globalLayout;
-  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&globalLayout, globalLayoutInfo));
+  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&state.globalInputLayout, globalLayoutInfo));
 
   OpalMaterialInputValue globalBufferValue = {};
   globalBufferValue.buffer = state.globalInputBuffer;
 
   OpalInputSetInitInfo globalSetInfo = {};
-  globalSetInfo.layout = globalLayout;
+  globalSetInfo.layout = state.globalInputLayout;
   globalSetInfo.pInputValues = &globalBufferValue;
   MS_ATTEMPT_OPAL(OpalInputSetInit(&state.globalInputSet, globalSetInfo));
 
@@ -137,11 +136,26 @@ MsResult InitMaterial()
   MsUpdateShader(Opal_Shader_Vertex);
   MsUpdateShader(Opal_Shader_Fragment);
 
+  // TODO : !!! Remove this. Temp input buffer argument information for testing
+  state.materialInfo.inputArgumentCount = 1;
+  state.materialInfo.pInputArguements = LapisMemAllocZeroArray(MsInputArgument, 1);
+  state.materialInfo.pInputArguements[0].type = Ms_Input_Buffer;
+  state.materialInfo.pInputArguements[0].data.buffer.elementCount = 1;
+  state.materialInfo.pInputArguements[0].data.buffer.pElements = LapisMemAllocZeroSingle(MsBufferElement);
+  state.materialInfo.pInputArguements[0].data.buffer.pElements[0].type = Ms_Buffer_Float3;
+  state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data = LapisMemAllocZero(sizeof(Vec3));
+  ((Vec3*)state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data)->r = 0.5f;
+  ((Vec3*)state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data)->g = 0.2f;
+  ((Vec3*)state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data)->b = 0.9f;
+
+  MS_ATTEMPT(MsUpdateMaterialInputLayoutAndSet());
+
   OpalMaterialInitInfo matInfo = { 0 };
   matInfo.shaderCount = state.shaderCount;
   matInfo.pShaders = state.pShaders;
-  matInfo.inputLayoutCount = 1;
-  matInfo.pInputLayouts = &globalLayout;
+  matInfo.inputLayoutCount = 2;
+  OpalInputLayout layouts[2] = { state.globalInputLayout, state.materialInfo.inputLayout };
+  matInfo.pInputLayouts = layouts;
   matInfo.pushConstantSize = 0;
   matInfo.renderpass = state.renderpass;
   matInfo.subpassIndex = 0;

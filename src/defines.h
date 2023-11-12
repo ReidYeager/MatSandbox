@@ -122,6 +122,11 @@ struct MsMeshInfo
   "  vec3 cameraForward;\n"                                               \
   "} global;\n"                                                           \
   "\n"                                                                    \
+  "layout(set = 1, binding = 0) uniform MaterialUniform\n"                \
+  "{\n"                                                                   \
+  "  vec3 color;\n"                                                       \
+  "} material;\n"                                                         \
+  "\n"                                                                    \
   "layout(location = 0) in vec3 inPos;\n"                                 \
   "layout(location = 0) out vec4 outColor;\n"                             \
   "\n"                                                                    \
@@ -129,8 +134,78 @@ struct MsMeshInfo
   "{\n"                                                                   \
   "  float d = dot(normalize(global.cameraForward), normalize(inPos));\n" \
   "  d = pow(d * -0.5 + 0.5, 1);\n"                                       \
-  "  outColor = vec4(d);\n"                                               \
+  "  outColor = vec4(material.color, 1.0);\n"                                   \
   "}\n"
+
+enum MsInputType
+{
+  Ms_Input_Buffer,
+  Ms_Input_Image,
+};
+
+enum MsBufferElementType
+{
+  Ms_Buffer_Float,
+  Ms_Buffer_Float2,
+  Ms_Buffer_Float3,
+  Ms_Buffer_Float4,
+
+  Ms_Buffer_Int,
+  Ms_Buffer_Int2,
+  Ms_Buffer_Int3,
+  Ms_Buffer_Int4,
+
+  Ms_Buffer_Uint,
+  Ms_Buffer_Uint2,
+  Ms_Buffer_Uint3,
+  Ms_Buffer_Uint4,
+
+  Ms_Buffer_double,
+  Ms_Buffer_double2,
+  Ms_Buffer_double3,
+  Ms_Buffer_double4,
+
+  Ms_Buffer_Mat4,
+};
+
+struct MsInputArgumentImage
+{
+  OpalImage image;
+};
+
+struct MsBufferElement
+{
+  MsBufferElementType type;
+  void* data;
+};
+
+struct MsInputArgumentBuffer
+{
+  OpalBuffer buffer;
+  uint32_t size;
+
+  uint32_t elementCount;
+  MsBufferElement* pElements;
+};
+
+struct MsInputArgument
+{
+  MsInputType type;
+  union
+  {
+    MsInputArgumentImage image;
+    MsInputArgumentBuffer buffer;
+  } data;
+};
+
+struct MsMaterialInfo
+{
+  uint32_t inputArgumentCount;
+  MsInputArgument* pInputArguements;
+
+  OpalInputLayout inputLayout;
+  OpalInputSet inputSet;
+};
 
 struct MatSandboxState
 {
@@ -148,7 +223,9 @@ struct MatSandboxState
   uint32_t shaderCount;
   OpalShader* pShaders;
   OpalMaterial material;
+  MsMaterialInfo materialInfo;
 
+  OpalInputLayout globalInputLayout;
   OpalInputSet globalInputSet;
   OpalBuffer globalInputBuffer;
 

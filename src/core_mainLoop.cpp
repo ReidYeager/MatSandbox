@@ -36,6 +36,24 @@ void HandleInput()
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
 }
 
+void UpdateMaterialValues()
+{
+  for (uint32_t argi = 0; argi < state.materialInfo.inputArgumentCount; argi++)
+  {
+    if (state.materialInfo.pInputArguements[argi].type != Ms_Input_Buffer) continue;
+
+    MsInputArgumentBuffer* buffer = &state.materialInfo.pInputArguements[argi].data.buffer;
+    uint32_t currentOffset = 0;
+    for (uint32_t i = 0, elementSize = 0; i < buffer->elementCount; i++)
+    {
+      MsBufferElement* element = &buffer->pElements[i];
+      elementSize = MsBufferElementSize(element->type);
+      OpalBufferPushDataSegment(buffer->buffer, element->data, elementSize, currentOffset);
+      currentOffset += elementSize;
+    }
+  }
+}
+
 MsResult MsUpdate()
 {
   while (!LapisWindowGetShouldClose(state.window.lapis))
@@ -49,7 +67,9 @@ MsResult MsUpdate()
     MS_ATTEMPT_OPAL(OpalRenderBegin(state.window.opal));
     OpalRenderBeginRenderpass(state.renderpass, state.framebuffer);
     OpalRenderBindMaterial(state.material);
+    UpdateMaterialValues();
     OpalRenderBindInputSet(state.globalInputSet, 0);
+    OpalRenderBindInputSet(state.materialInfo.inputSet, 1);
     OpalRenderMesh(state.meshes[state.meshIndex]);
 
     MS_ATTEMPT(RenderUi());
