@@ -202,9 +202,8 @@ MsResult InitImgui()
 
   VkCommandBuffer cmd;
   OpalBeginSingleUseCommand(oState.vk.transientCommandPool, &cmd);
-  ImGui_ImplVulkan_CreateFontsTexture(cmd);
+  ImGui_ImplVulkan_CreateFontsTexture();
   OpalEndSingleUseCommand(oState.vk.transientCommandPool, oState.vk.queueTransfer, cmd);
-  ImGui_ImplVulkan_DestroyFontUploadObjects();
 
   return Ms_Success;
 }
