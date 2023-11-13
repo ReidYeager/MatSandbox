@@ -15,6 +15,26 @@ void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 }
 
+void WindowResizeCallback(LapisWindow window, uint32_t width, uint32_t height)
+{
+  if (width == 0 || height == 0 || LapisWindowGetMinimized(window))
+    return;
+
+  if (OpalWindowReinit(state.window.opal) != Opal_Success)
+  {
+    LapisWindowMarkForClosure(window);
+    return;
+  }
+
+  if (OpalFramebufferReinit(state.uiFramebuffer) != Opal_Success)
+  {
+    LapisWindowMarkForClosure(window);
+    return;
+  }
+
+  Render();
+}
+
 MsResult MsInit()
 {
   MS_ATTEMPT(InitWindow());
@@ -25,7 +45,6 @@ MsResult MsInit()
   MS_ATTEMPT(InitImgui());
 
   state.globalInputValues.camProj = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
-  state.globalInputValues.camProj.y.y *= -1;
 
   UpdateCamera();
 
@@ -36,10 +55,11 @@ MsResult InitWindow()
 {
   LapisWindowInitInfo lapisWindowInfo = {};
   lapisWindowInfo.fnPlatformInputCallback = LapisInputCallback;
+  lapisWindowInfo.fnResizeCallback = WindowResizeCallback;
+  lapisWindowInfo.resizable = true;
   lapisWindowInfo.extents = { 1280, 720 };
-  lapisWindowInfo.position = { 1800, 100 };
+  lapisWindowInfo.position = { 100, 100 };
   lapisWindowInfo.title = "Material with lapis";
-  lapisWindowInfo.resizable = false;
   LapisWindowInit(lapisWindowInfo, &state.window.lapis);
 
   LapisWindowPlatformData windowPlatformData = LapisWindowGetPlatformData(state.window.lapis);
@@ -83,21 +103,21 @@ MsResult InitSceneRenderResources()
 
   // Renderpass init
   OpalAttachmentInfo attachments[2] = { 0 };
-  attachments[0].clearValue.depthStencil = (OpalDepthStencilValue){ 1, 0 };
-  attachments[0].format = Opal_Format_D24_S8;
+  attachments[0].clearValue.color = (OpalColorValue){ 0.5f, 0.5f, 0.5f, 1.0f };
+  attachments[0].format = Opal_Format_BGRA8;
   attachments[0].loadOp = Opal_Attachment_Op_Clear;
-  attachments[0].shouldStore = false;
-  attachments[0].usage = Opal_Attachment_Usage_Depth;
+  attachments[0].shouldStore = true;
+  attachments[0].usage = Opal_Attachment_Usage_Presented;
 
-  attachments[1].clearValue.color = (OpalColorValue){ 0.5f, 0.5f, 0.5f, 1.0f };
-  attachments[1].format = Opal_Format_BGRA8;
+  attachments[1].clearValue.depthStencil = (OpalDepthStencilValue){ 1, 0 };
+  attachments[1].format = Opal_Format_D24_S8;
   attachments[1].loadOp = Opal_Attachment_Op_Clear;
-  attachments[1].shouldStore = true;
-  attachments[1].usage = Opal_Attachment_Usage_Presented;
+  attachments[1].shouldStore = false;
+  attachments[1].usage = Opal_Attachment_Usage_Depth;
 
-  uint32_t colorIndices[1] = { 1 };
+  uint32_t colorIndices[1] = { 0 };
   OpalSubpassInfo subpass = { 0 };
-  subpass.depthAttachmentIndex = 0;
+  subpass.depthAttachmentIndex = 1;
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachmentIndices = colorIndices;
   subpass.inputAttachmentCount = 0;
@@ -113,7 +133,7 @@ MsResult InitSceneRenderResources()
   MS_ATTEMPT_OPAL(OpalRenderpassInit(&state.sceneRenderpass, rpInfo));
 
   // Framebuffer init
-  OpalImage framebufferImages[2] = { state.depthImage, state.sceneImage };
+  OpalImage framebufferImages[2] = { state.sceneImage, state.depthImage };
   OpalFramebufferInitInfo fbInfo = { 0 };
   fbInfo.imageCount = 2;
   fbInfo.pImages = framebufferImages;

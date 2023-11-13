@@ -59,7 +59,7 @@ MsResult RenderImguiUi()
   // =====
   // Vert
   // =====
-  ImGui::Begin("This is a test thing");
+  ImGui::Begin("Code");
   ImGui::Text("Vertex shader");
   if (ImGui::Button("Compile Vert"))
   {
@@ -106,9 +106,15 @@ MsResult RenderImguiUi()
 
   ImGui::End();
 
-  ImGui::Begin("Scene");
   ImVec2 sceneExtents = { (float)state.sceneImage->extents.width, (float)state.sceneImage->extents.height };
+
+  ImGui::Begin("Preview");
   ImGui::Image(state.uiSceneImageInputSet->vk.descriptorSet, sceneExtents);
+
+  ImVec2 min = ImGui::GetWindowContentRegionMin();
+  ImVec2 max = ImGui::GetWindowContentRegionMax();
+  state.sceneGuiExtentsPrevFrame = { (int32_t)(max.x - min.x), (int32_t)(max.y - min.y) };
+
   ImGui::End();
 
   ImGui::Render();

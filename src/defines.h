@@ -2,6 +2,7 @@
 #ifndef MATSANDBOX_DEFINES_H
 #define MATSANDBOX_DEFINES_H
 
+#define PERIDOT_VULKAN
 #include <peridot.h>
 #include <opal.h>
 #include <lapis.h>
@@ -91,9 +92,9 @@ struct MsMeshInfo
   "\n"                                                          \
   "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n" \
   "{\n"                                                         \
-  "  mat4 cameraView;\n"                                        \
-  "  mat4 cameraProjection;\n"                                  \
-  "  mat4 viewProj;\n"                                          \
+  "  mat4 camView;\n"                                           \
+  "  mat4 camProj;\n"                                           \
+  "  mat4 camViewProj;\n"                                       \
   "  vec3 cameraForward;\n"                                     \
   "} global;\n"                                                 \
   "\n"                                                          \
@@ -105,7 +106,7 @@ struct MsMeshInfo
   "\n"                                                          \
   "void main()\n"                                               \
   "{\n"                                                         \
-  "  vec4 p = global.viewProj * vec4(inPosition, 1.0);\n"       \
+  "  vec4 p = global.camViewProj * vec4(inPosition, 1.0);\n"    \
   "  outPos = inNormal;\n"                                      \
   "  gl_Position = p;\n"                                        \
   "}\n"
@@ -133,8 +134,8 @@ struct MsMeshInfo
   "void main()\n"                                                         \
   "{\n"                                                                   \
   "  float d = dot(normalize(global.cameraForward), normalize(inPos));\n" \
-  "  d = pow(d * -0.5 + 0.5, 1);\n"                                       \
-  "  outColor = vec4(material.color, 1.0);\n"                                   \
+  "  d = pow(d * 0.5 + 0.5, 1);\n"                                        \
+  "  outColor = vec4(material.color * d, 1.0);\n"                         \
   "}\n"
 
 enum MsInputType
@@ -211,6 +212,7 @@ struct MatSandboxState
 {
   MsbWindow window;
 
+  Vec2I sceneGuiExtentsPrevFrame;
   OpalImage sceneImage;
   OpalImage depthImage;
   OpalImage renderBufferImage;
