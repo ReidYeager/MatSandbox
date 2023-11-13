@@ -87,28 +87,27 @@ struct MsMeshInfo
   std::vector<uint32_t> indices;
 };
 
-#define MATSANDBOX_VERT_DEFAULT_SOURCE                          \
-  "#version 460\n"                                              \
-  "\n"                                                          \
-  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n" \
-  "{\n"                                                         \
-  "  mat4 camView;\n"                                           \
-  "  mat4 camProj;\n"                                           \
-  "  mat4 camViewProj;\n"                                       \
-  "  vec3 cameraForward;\n"                                     \
-  "} global;\n"                                                 \
-  "\n"                                                          \
-  "layout(location = 0) in vec3 inPosition;\n"                  \
-  "layout(location = 1) in vec3 inNormal;\n"                    \
-  "layout(location = 2) in vec2 inUv;\n"                        \
-  "\n"                                                          \
-  "layout(location = 0) out vec3 outPos;\n"                     \
-  "\n"                                                          \
-  "void main()\n"                                               \
-  "{\n"                                                         \
-  "  vec4 p = global.camViewProj * vec4(inPosition, 1.0);\n"    \
-  "  outPos = inNormal;\n"                                      \
-  "  gl_Position = p;\n"                                        \
+#define MATSANDBOX_VERT_DEFAULT_SOURCE                                    \
+  "#version 460\n"                                                        \
+  "\n"                                                                    \
+  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"           \
+  "{\n"                                                                   \
+  "  mat4 camView;\n"                                                     \
+  "  mat4 camProj;\n"                                                     \
+  "  vec3 cameraForward;\n"                                               \
+  "} global;\n"                                                           \
+  "\n"                                                                    \
+  "layout(location = 0) in vec3 inPosition;\n"                            \
+  "layout(location = 1) in vec3 inNormal;\n"                              \
+  "layout(location = 2) in vec2 inUv;\n"                                  \
+  "\n"                                                                    \
+  "layout(location = 0) out vec3 outPos;\n"                               \
+  "\n"                                                                    \
+  "void main()\n"                                                         \
+  "{\n"                                                                   \
+  "  vec4 p = global.camProj * global.camView * vec4(inPosition, 1.0);\n" \
+  "  outPos = inNormal;\n"                                                \
+  "  gl_Position = p;\n"                                                  \
   "}\n"
 
 
@@ -117,9 +116,8 @@ struct MsMeshInfo
   "\n"                                                                    \
   "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"           \
   "{\n"                                                                   \
-  "  mat4 cameraView;\n"                                                  \
-  "  mat4 cameraProjection;\n"                                            \
-  "  mat4 viewProj;\n"                                                    \
+  "  mat4 camView;\n"                                                     \
+  "  mat4 camProj;\n"                                                     \
   "  vec3 cameraForward;\n"                                               \
   "} global;\n"                                                           \
   "\n"                                                                    \
@@ -242,7 +240,6 @@ struct MatSandboxState
   {
     Mat4 camView = mat4Identity;
     Mat4 camProj = mat4Identity;
-    Mat4 camViewProj = mat4Identity;
     Vec3 camForward = { 0.0f, 0.0f, -1.0f, };
   } globalInputValues;
 

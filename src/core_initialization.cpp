@@ -44,7 +44,15 @@ MsResult MsInit()
   MS_ATTEMPT(InitMeshes());
   MS_ATTEMPT(InitImgui());
 
-  state.globalInputValues.camProj = ProjectionPerspective(1280.0f / 720.0f, 90.0f, 0.01f, 100.0f);
+  uint32_t windowWidth, windowHeight;
+  LapisWindowGetExtents(state.window.lapis, &windowWidth, &windowHeight);
+
+  state.globalInputValues.camProj = ProjectionPerspectiveExtended(
+    (float)windowWidth / (float)windowHeight,
+    1.0f,    // 1:1 guaranteed ratio
+    90.0f,   // VFov
+    0.01f,   // near clip
+    100.0f); // far clip
 
   UpdateCamera();
 

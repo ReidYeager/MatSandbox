@@ -99,22 +99,17 @@ MsResult RenderImguiUi()
   RenderImguiMatrix("Cam view matrix", &state.globalInputValues.camView);
   ImGui::Text("Camera projection matrix");
   RenderImguiMatrix("Cam proj matrix", &state.globalInputValues.camProj);
-  ImGui::Text("Camera viewProjection matrix");
-  RenderImguiMatrix("Cam viewproj matrix", &state.globalInputValues.camViewProj);
   ImGui::DragFloat3("Camera forward vector", state.globalInputValues.camForward.elements);
   state.globalInputValues.camForward = Vec3Normalize(state.globalInputValues.camForward);
 
   ImGui::End();
 
   ImVec2 sceneExtents = { (float)state.sceneImage->extents.width, (float)state.sceneImage->extents.height };
-
   ImGui::Begin("Preview");
   ImGui::Image(state.uiSceneImageInputSet->vk.descriptorSet, sceneExtents);
-
   ImVec2 min = ImGui::GetWindowContentRegionMin();
   ImVec2 max = ImGui::GetWindowContentRegionMax();
   state.sceneGuiExtentsPrevFrame = { (int32_t)(max.x - min.x), (int32_t)(max.y - min.y) };
-
   ImGui::End();
 
   ImGui::Render();

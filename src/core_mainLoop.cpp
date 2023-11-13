@@ -3,13 +3,19 @@
 
 void HandleInput()
 {
-  state.camera.armLength -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Wheel) * 0.1f;
+  float scrollAmount = LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Wheel);
+  if (scrollAmount != 0.0f)
+  {
+    state.camera.armLength -= scrollAmount * 0.1f;
+    UpdateCamera();
+  }
 
   if (LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Mouse_Right)
     || LapisInputGetValue(state.window.lapis, Lapis_Input_Button_R))
   {
     state.camera.transform.rotation.y -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_X);
     state.camera.transform.rotation.x -= LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Delta_Y);
+    UpdateCamera();
   }
   else if (LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Mouse_Middle)
     || LapisInputGetValue(state.window.lapis, Lapis_Input_Button_G))
@@ -22,10 +28,12 @@ void HandleInput()
 
     state.camera.focusPosition = Vec3AddVec3(state.camera.focusPosition, camRight);
     state.camera.focusPosition = Vec3AddVec3(state.camera.focusPosition, camUp);
+    UpdateCamera();
   }
   else if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_F))
   {
     state.camera.focusPosition = { 0.0f, 0.0f, 0.0f };
+    UpdateCamera();
   }
 
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_1)) state.meshIndex = 0;
@@ -72,8 +80,13 @@ MsResult UpdateSceneRenderComponents()
   MS_ATTEMPT_OPAL(OpalImageResize(state.depthImage, newExtents));
   MS_ATTEMPT_OPAL(OpalFramebufferReinit(state.sceneFramebuffer));
 
-  state.globalInputValues.camProj =
-    ProjectionPerspective((float)newExtents.width / (float)newExtents.height, 90.0f, 0.01f, 100.0f);
+  state.globalInputValues.camProj = ProjectionPerspectiveExtended(
+    (float)newExtents.width / (float)newExtents.height,
+    1.0f,    // 1:1 guaranteed ratio
+    90.0f,   // VFov
+    0.01f,   // near clip
+    100.0f); // far clip
+  UpdateCamera();
 
   OpalInputInfo sceneImageInputInfo = { 0 };
   sceneImageInputInfo.index = 0;
@@ -118,7 +131,8 @@ MsResult MsUpdate()
     HandleInput();
 
     MS_ATTEMPT(UpdateSceneRenderComponents());
-    MS_ATTEMPT(UpdateCamera());
+    printf("%f, %f, %f, %f\r", state.globalInputValues.camView.x.x, state.globalInputValues.camView.x.y, state.globalInputValues.camView.x.z, state.globalInputValues.camView.x.w);
+    MS_ATTEMPT_OPAL(OpalBufferPushData(state.globalInputBuffer, &state.globalInputValues));
     MS_ATTEMPT(Render());
   }
 
