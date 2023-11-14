@@ -44,24 +44,6 @@ void HandleInput()
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
 }
 
-void UpdateMaterialValues()
-{
-  for (uint32_t argi = 0; argi < state.materialInfo.inputArgumentCount; argi++)
-  {
-    if (state.materialInfo.pInputArguements[argi].type != Ms_Input_Buffer) continue;
-
-    MsInputArgumentBuffer* buffer = &state.materialInfo.pInputArguements[argi].data.buffer;
-    uint32_t currentOffset = 0;
-    for (uint32_t i = 0, elementSize = 0; i < buffer->elementCount; i++)
-    {
-      MsBufferElement* element = &buffer->pElements[i];
-      elementSize = MsBufferElementSize(element->type);
-      OpalBufferPushDataSegment(buffer->buffer, element->data, elementSize, currentOffset);
-      currentOffset += elementSize;
-    }
-  }
-}
-
 MsResult UpdateSceneRenderComponents()
 {
   if (state.sceneGuiExtentsPrevFrame.x <= 0 || state.sceneGuiExtentsPrevFrame.y <= 0)
@@ -107,7 +89,7 @@ MsResult Render()
   // Scene
   OpalRenderBeginRenderpass(state.sceneRenderpass, state.sceneFramebuffer);
   OpalRenderBindMaterial(state.material);
-  UpdateMaterialValues();
+  MsUpdateMaterialValues();
   OpalRenderBindInputSet(state.globalInputSet, 0);
   OpalRenderBindInputSet(state.materialInfo.inputSet, 1);
   OpalRenderMesh(state.meshes[state.meshIndex]);
@@ -131,7 +113,6 @@ MsResult MsUpdate()
     HandleInput();
 
     MS_ATTEMPT(UpdateSceneRenderComponents());
-    printf("%f, %f, %f, %f\r", state.globalInputValues.camView.x.x, state.globalInputValues.camView.x.y, state.globalInputValues.camView.x.z, state.globalInputValues.camView.x.w);
     MS_ATTEMPT_OPAL(OpalBufferPushData(state.globalInputBuffer, &state.globalInputValues));
     MS_ATTEMPT(Render());
   }

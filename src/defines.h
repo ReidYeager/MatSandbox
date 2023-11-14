@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <string>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
 #define MSB_PLATFORM_WIN32 1
@@ -124,6 +125,7 @@ struct MsMeshInfo
   "layout(set = 1, binding = 0) uniform MaterialUniform\n"                \
   "{\n"                                                                   \
   "  vec3 color;\n"                                                       \
+  "  mat4 mat;\n"                                                       \
   "} material;\n"                                                         \
   "\n"                                                                    \
   "layout(location = 0) in vec3 inPos;\n"                                 \
@@ -133,7 +135,7 @@ struct MsMeshInfo
   "{\n"                                                                   \
   "  float d = dot(normalize(global.cameraForward), normalize(inPos));\n" \
   "  d = pow(d * 0.5 + 0.5, 1);\n"                                        \
-  "  outColor = vec4(material.color * d, 1.0);\n"                         \
+  "  outColor = vec4(material.color * material.mat[0][0], 1.0);\n"                         \
   "}\n"
 
 enum MsInputType
@@ -174,6 +176,7 @@ struct MsInputArgumentImage
 
 struct MsBufferElement
 {
+  std::string name;
   MsBufferElementType type;
   void* data;
 };
@@ -189,12 +192,30 @@ struct MsInputArgumentBuffer
 
 struct MsInputArgument
 {
+  std::string name;
   MsInputType type;
   union
   {
     MsInputArgumentImage image;
     MsInputArgumentBuffer buffer;
   } data;
+};
+
+struct MsInputArgumentInitInfo
+{
+  MsInputType type;
+  union
+  {
+    struct
+    {
+      uint32_t elementCount;
+      MsBufferElementType* pElementTypes;
+    } bufferInfo;
+    struct
+    {
+      int x;
+    } imageInfo;
+  };
 };
 
 struct MsMaterialInfo

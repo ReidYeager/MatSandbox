@@ -30,10 +30,14 @@ MsResult RenderUi();
 const char* GetShaderTypeExtension(OpalShaderType type);
 MsResult MsCompileShader(OpalShaderType type, const char* source);
 MsResult MsUpdateShader(OpalShaderType type);
+void MsUpdateMaterialValues();
 MsResult MsUpdateMaterialInputLayoutAndSet();
 MsResult MsUpdateMaterial();
 uint32_t MsBufferElementSize(MsBufferElementType element);
 MsResult Render();
+MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgumentIndex);
+MsResult MsUpdateInputArgument(MsInputArgument* argument);
+uint32_t MsPadForUniform(uint32_t size);
 
 MsResult LoadMesh(const char* path, OpalMesh* outMesh);
 

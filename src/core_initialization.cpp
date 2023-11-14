@@ -234,16 +234,16 @@ MsResult InitMaterial()
   MsUpdateShader(Opal_Shader_Fragment);
 
   // TODO : !!! Remove this. Temp input buffer argument information for testing
-  state.materialInfo.inputArgumentCount = 1;
-  state.materialInfo.pInputArguements = LapisMemAllocZeroArray(MsInputArgument, 1);
-  state.materialInfo.pInputArguements[0].type = Ms_Input_Buffer;
-  state.materialInfo.pInputArguements[0].data.buffer.elementCount = 1;
-  state.materialInfo.pInputArguements[0].data.buffer.pElements = LapisMemAllocZeroSingle(MsBufferElement);
-  state.materialInfo.pInputArguements[0].data.buffer.pElements[0].type = Ms_Buffer_Float3;
-  state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data = LapisMemAllocZero(sizeof(Vec3));
-  ((Vec3*)state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data)->r = 0.5f;
-  ((Vec3*)state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data)->g = 0.2f;
-  ((Vec3*)state.materialInfo.pInputArguements[0].data.buffer.pElements[0].data)->b = 0.9f;
+
+  MsBufferElementType vecType[2] = { Ms_Buffer_Float3, Ms_Buffer_Mat4 };
+  MsInputArgumentInitInfo argumentInfo;
+  argumentInfo.type = Ms_Input_Buffer;
+  argumentInfo.bufferInfo.elementCount = 2;
+  argumentInfo.bufferInfo.pElementTypes = vecType;
+  uint32_t bufferArgIndex = 0;
+  MsCreateInputArgument(argumentInfo, &bufferArgIndex);
+  *((Vec3*)state.materialInfo.pInputArguements[bufferArgIndex].data.buffer.pElements[0].data) = { 0.5f, 0.2f, 0.9f };
+  MsUpdateInputArgument(&state.materialInfo.pInputArguements[bufferArgIndex]);
 
   MS_ATTEMPT(MsUpdateMaterialInputLayoutAndSet());
 
