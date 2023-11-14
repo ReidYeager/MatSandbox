@@ -274,7 +274,7 @@ struct MatSandboxState
   OpalFramebuffer uiFramebuffer;
 
   uint32_t meshIndex;
-  OpalMesh meshes[4];
+  OpalMesh meshes[5];
 
   uint32_t shaderCount;
   OpalShader* pShaders;

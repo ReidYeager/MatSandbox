@@ -263,13 +263,10 @@ void RenderCustomArguments()
     argument = state.materialInfo.pInputArguements + i;
     if (argument->type == Ms_Input_Buffer)
     {
-      if (ImGui::TreeNode("Test buffer"))
-      {
-        RenderBufferAddElement(i);
-
-        RenderBufferArgumentElements(&argument->data.buffer);
-        ImGui::TreePop();
-      }
+      ImGui::SeparatorText("Test buffer");
+      ImGui::SameLine();
+      RenderBufferAddElement(i);
+      RenderBufferArgumentElements(&argument->data.buffer);
     }
     else
     {
@@ -325,8 +322,6 @@ MsResult RenderImguiUi()
   MS_ATTEMPT(RenderCode());
   MS_ATTEMPT(RenderArguments());
   MS_ATTEMPT(RenderPreview());
-
-  ImGui::ShowDemoWindow();
 
   ImGui::EndFrame();
 
