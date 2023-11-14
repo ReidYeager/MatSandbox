@@ -34,10 +34,11 @@ void MsUpdateMaterialValues();
 MsResult MsUpdateMaterialInputLayoutAndSet();
 MsResult MsUpdateMaterial();
 uint32_t MsBufferElementSize(MsBufferElementType element);
+MsResult MsBufferAddElement(MsInputArgumentBuffer* buffer, MsBufferElementType type);
 MsResult Render();
 MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgumentIndex);
 MsResult MsUpdateInputArgument(MsInputArgument* argument);
-uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType nextElement);
+uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType element);
 
 MsResult LoadMesh(const char* path, OpalMesh* outMesh);
 

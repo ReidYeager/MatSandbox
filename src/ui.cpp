@@ -114,74 +114,144 @@ void RenderBufferArgumentElements(MsInputArgumentBuffer* buffer)
     {
     case Ms_Buffer_Float:
     {
-      ImGui::DragFloat(element->name.c_str(), (float*)element->data, 0.01f);
+      ImGui::DragFloat(element->name, (float*)element->data, 0.01f);
     } break;
     case Ms_Buffer_Float2:
     {
-      ImGui::DragFloat2(element->name.c_str(), (float*)element->data, 0.01f);
+      ImGui::DragFloat2(element->name, (float*)element->data, 0.01f);
     } break;
     case Ms_Buffer_Float3:
     {
-      ImGui::DragFloat3(element->name.c_str(), (float*)element->data, 0.01f);
+      ImGui::DragFloat3(element->name, (float*)element->data, 0.01f);
     } break;
     case Ms_Buffer_Float4:
     {
-      ImGui::DragFloat4(element->name.c_str(), (float*)element->data, 0.01f);
+      ImGui::DragFloat4(element->name, (float*)element->data, 0.01f);
     } break;
     case Ms_Buffer_Int:
     {
-      ImGui::DragInt(element->name.c_str(), (int*)element->data);
+      ImGui::DragInt(element->name, (int*)element->data);
     } break;
     case Ms_Buffer_Int2:
     {
-      ImGui::DragInt2(element->name.c_str(), (int*)element->data);
+      ImGui::DragInt2(element->name, (int*)element->data);
     } break;
     case Ms_Buffer_Int3:
     {
-      ImGui::DragInt3(element->name.c_str(), (int*)element->data);
+      ImGui::DragInt3(element->name, (int*)element->data);
     } break;
     case Ms_Buffer_Int4:
     {
-      ImGui::DragInt4(element->name.c_str(), (int*)element->data);
+      ImGui::DragInt4(element->name, (int*)element->data);
     } break;
     case Ms_Buffer_Uint:
     {
-      ImGui::DragScalar(element->name.c_str(), ImGuiDataType_U32, element->data);
+      ImGui::DragScalar(element->name, ImGuiDataType_U32, element->data);
     } break;
     case Ms_Buffer_Uint2:
     {
-      ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32, element->data, 2);
+      ImGui::DragScalarN(element->name, ImGuiDataType_U32, element->data, 2);
     } break;
     case Ms_Buffer_Uint3:
     {
-      ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32, element->data, 3);
+      ImGui::DragScalarN(element->name, ImGuiDataType_U32, element->data, 3);
     } break;
     case Ms_Buffer_Uint4:
     {
-      ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32, element->data, 4);
+      ImGui::DragScalarN(element->name, ImGuiDataType_U32, element->data, 4);
     } break;
-    case Ms_Buffer_double:
+    case Ms_Buffer_Double:
     {
-      ImGui::DragScalar(element->name.c_str(), ImGuiDataType_Double, element->data);
+      ImGui::DragScalar(element->name, ImGuiDataType_Double, element->data);
     } break;
-    case Ms_Buffer_double2:
+    case Ms_Buffer_Double2:
     {
-      ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 2);
+      ImGui::DragScalarN(element->name, ImGuiDataType_Double, element->data, 2);
     } break;
-    case Ms_Buffer_double3:
+    case Ms_Buffer_Double3:
     {
-      ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 3);
+      ImGui::DragScalarN(element->name, ImGuiDataType_Double, element->data, 3);
     } break;
-    case Ms_Buffer_double4:
+    case Ms_Buffer_Double4:
     {
-      ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 4);
+      ImGui::DragScalarN(element->name, ImGuiDataType_Double, element->data, 4);
     } break;
     case Ms_Buffer_Mat4:
     {
-      RenderImguiMatrix(element->name.c_str(), (Mat4*)element->data);
+      RenderImguiMatrix(element->name, (Mat4*)element->data);
     } break;
     default: break;
     }
+  }
+}
+
+void RenderBufferAddElement(uint32_t argIndex)
+{
+  MsInputArgumentBuffer* buffer = &state.materialInfo.pInputArguements[argIndex].data.buffer;
+
+  if (ImGui::Button("Add"))
+    ImGui::OpenPopup("BufferAddPopup");
+
+  if (ImGui::BeginPopup("BufferAddPopup"))
+  {
+    if (ImGui::BeginMenu("Int"))
+    {
+      if (ImGui::MenuItem("Int"))
+        MsBufferAddElement(buffer, Ms_Buffer_Int);
+      if (ImGui::MenuItem("Int2"))
+        MsBufferAddElement(buffer, Ms_Buffer_Int2);
+      if (ImGui::MenuItem("Int3"))
+        MsBufferAddElement(buffer, Ms_Buffer_Int3);
+      if (ImGui::MenuItem("Int4"))
+        MsBufferAddElement(buffer, Ms_Buffer_Int4);
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Uint"))
+    {
+      if (ImGui::MenuItem("Uint"))
+        MsBufferAddElement(buffer, Ms_Buffer_Uint);
+      if (ImGui::MenuItem("Uint2"))
+        MsBufferAddElement(buffer, Ms_Buffer_Uint2);
+      if (ImGui::MenuItem("Uint3"))
+        MsBufferAddElement(buffer, Ms_Buffer_Uint3);
+      if (ImGui::MenuItem("Uint4"))
+        MsBufferAddElement(buffer, Ms_Buffer_Uint4);
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Float"))
+    {
+      if (ImGui::MenuItem("Float"))
+        MsBufferAddElement(buffer, Ms_Buffer_Float);
+      if (ImGui::MenuItem("Float2"))
+        MsBufferAddElement(buffer, Ms_Buffer_Float2);
+      if (ImGui::MenuItem("Float3"))
+        MsBufferAddElement(buffer, Ms_Buffer_Float3);
+      if (ImGui::MenuItem("Float4"))
+        MsBufferAddElement(buffer, Ms_Buffer_Float4);
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Double"))
+    {
+      if (ImGui::MenuItem("Double"))
+        MsBufferAddElement(buffer, Ms_Buffer_Double);
+      if (ImGui::MenuItem("Double2"))
+        MsBufferAddElement(buffer, Ms_Buffer_Double2);
+      if (ImGui::MenuItem("Double3"))
+        MsBufferAddElement(buffer, Ms_Buffer_Double3);
+      if (ImGui::MenuItem("Double4"))
+        MsBufferAddElement(buffer, Ms_Buffer_Double4);
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::Selectable("Mat4"))
+    {
+      MsBufferAddElement(buffer, Ms_Buffer_Mat4);
+    }
+
+    ImGui::EndPopup();
   }
 }
 
@@ -195,6 +265,8 @@ void RenderCustomArguments()
     {
       if (ImGui::TreeNode("Test buffer"))
       {
+        RenderBufferAddElement(i);
+
         RenderBufferArgumentElements(&argument->data.buffer);
         ImGui::TreePop();
       }

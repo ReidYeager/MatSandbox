@@ -12,10 +12,10 @@ uint32_t MsBufferElementSize(MsBufferElementType element)
   case Ms_Buffer_Float3: case Ms_Buffer_Int3: case Ms_Buffer_Uint3: return 12;
   case Ms_Buffer_Float4: case Ms_Buffer_Int4: case Ms_Buffer_Uint4: return 16;
 
-  case Ms_Buffer_double : return 8;
-  case Ms_Buffer_double2: return 16;
-  case Ms_Buffer_double3: return 24;
-  case Ms_Buffer_double4: return 32;
+  case Ms_Buffer_Double : return 8;
+  case Ms_Buffer_Double2: return 16;
+  case Ms_Buffer_Double3: return 24;
+  case Ms_Buffer_Double4: return 32;
 
   case Ms_Buffer_Mat4: return 64;
 
@@ -23,10 +23,10 @@ uint32_t MsBufferElementSize(MsBufferElementType element)
   }
 }
 
-uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType nextElement)
+uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType element)
 {
   uint32_t alignment = 0;
-  switch (nextElement)
+  switch (element)
   {
   case Ms_Buffer_Float: case Ms_Buffer_Int: case Ms_Buffer_Uint: alignment = 4; break;
   case Ms_Buffer_Float2: case Ms_Buffer_Int2: case Ms_Buffer_Uint2: alignment = 8; break;
@@ -34,9 +34,9 @@ uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType next
   case Ms_Buffer_Float3: case Ms_Buffer_Int3: case Ms_Buffer_Uint3:
   case Ms_Buffer_Float4: case Ms_Buffer_Int4: case Ms_Buffer_Uint4: alignment = 16; break;
 
-  case Ms_Buffer_double: alignment = 8; break;
-  case Ms_Buffer_double2: alignment = 16; break;
-  case Ms_Buffer_double3: case Ms_Buffer_double4: alignment = 32; break;
+  case Ms_Buffer_Double: alignment = 8; break;
+  case Ms_Buffer_Double2: alignment = 16; break;
+  case Ms_Buffer_Double3: case Ms_Buffer_Double4: alignment = 32; break;
 
   case Ms_Buffer_Mat4: alignment = 16; break;
 
@@ -208,6 +208,49 @@ void MsUpdateMaterialValues()
   }
 }
 
+MsResult MsBufferAddElement(MsInputArgumentBuffer* buffer, MsBufferElementType type)
+{
+  // Add element
+  uint32_t newElementIndex = buffer->elementCount;
+
+  buffer->size = MsBufferOffsetToBaseAlignment(buffer->size, type);
+  buffer->size += MsBufferElementSize(type);
+
+  buffer->elementCount++;
+  buffer->pElements = LapisMemReallocArray(buffer->pElements, MsBufferElement, buffer->elementCount);
+
+  MsBufferElement* newElement = &buffer->pElements[newElementIndex];
+
+  newElement->name = LapisMemAllocArray(char, 128);
+  sprintf(newElement->name, "New %s", MsBufferElementTypeNames[type]);
+  newElement->type = type;
+  newElement->data = LapisMemAllocZero(MsBufferElementSize(type));
+
+  // Update Opal buffer
+  OpalBufferShutdown(&buffer->buffer);
+
+  OpalBufferInitInfo bufferInfo;
+  bufferInfo.size = buffer->size;
+  bufferInfo.usage = Opal_Buffer_Usage_Uniform;
+  MS_ATTEMPT_OPAL(OpalBufferInit(&buffer->buffer, bufferInfo));
+
+  // Update material input set
+  uint32_t bufferArgIndex = 0;
+  while (&state.materialInfo.pInputArguements[bufferArgIndex].data.buffer != buffer)
+  {
+    bufferArgIndex++;
+  }
+
+  OpalInputInfo inputInfo;
+  inputInfo.index = bufferArgIndex;
+  inputInfo.type = Opal_Input_Type_Uniform_Buffer;
+  inputInfo.value.buffer = buffer->buffer;
+
+  MS_ATTEMPT_OPAL(OpalInputSetUpdate(state.materialInfo.inputSet, 1, &inputInfo));
+
+  return Ms_Success;
+}
+
 MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
 {
   MsBufferElement* pElements = LapisMemAllocZeroArray(MsBufferElement, info.bufferInfo.elementCount);
@@ -216,13 +259,12 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
   for (uint32_t i = 0; i < info.bufferInfo.elementCount; i++)
   {
     uint32_t elementSize = MsBufferElementSize(info.bufferInfo.pElementTypes[i]);
+    bufferSize = MsBufferOffsetToBaseAlignment(bufferSize, pElements[i].type);
     bufferSize += elementSize;
     pElements[i].type = info.bufferInfo.pElementTypes[i];
     pElements[i].data = LapisMemAllocZero(elementSize);
-
-    char nameBuffer[128];
-    sprintf(nameBuffer, "Buffer Argument %u", i);
-    pElements[i].name = nameBuffer;
+    pElements[i].name = LapisMemAllocArray(char, 128);
+    sprintf(pElements[i].name, "Buffer element %u", i);
   }
 
   OpalBufferInitInfo bufferInfo;

@@ -146,11 +146,6 @@ enum MsInputType
 
 enum MsBufferElementType
 {
-  Ms_Buffer_Float,
-  Ms_Buffer_Float2,
-  Ms_Buffer_Float3,
-  Ms_Buffer_Float4,
-
   Ms_Buffer_Int,
   Ms_Buffer_Int2,
   Ms_Buffer_Int3,
@@ -161,12 +156,39 @@ enum MsBufferElementType
   Ms_Buffer_Uint3,
   Ms_Buffer_Uint4,
 
-  Ms_Buffer_double,
-  Ms_Buffer_double2,
-  Ms_Buffer_double3,
-  Ms_Buffer_double4,
+  Ms_Buffer_Float,
+  Ms_Buffer_Float2,
+  Ms_Buffer_Float3,
+  Ms_Buffer_Float4,
+
+  Ms_Buffer_Double,
+  Ms_Buffer_Double2,
+  Ms_Buffer_Double3,
+  Ms_Buffer_Double4,
 
   Ms_Buffer_Mat4,
+  Ms_Buffer_COUNT,
+};
+
+static const char* MsBufferElementTypeNames[Ms_Buffer_COUNT] =
+{
+  "Int",
+  "Int2",
+  "Int3",
+  "Int4",
+  "Uint",
+  "Uint2",
+  "Uint3",
+  "Uint4",
+  "Float",
+  "Float2",
+  "Float3",
+  "Float4",
+  "Double",
+  "Double2",
+  "Double3",
+  "Double4",
+  "Mat4"
 };
 
 struct MsInputArgumentImage
@@ -176,7 +198,7 @@ struct MsInputArgumentImage
 
 struct MsBufferElement
 {
-  std::string name;
+  char* name;
   MsBufferElementType type;
   void* data;
 };
