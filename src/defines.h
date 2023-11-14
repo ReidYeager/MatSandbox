@@ -124,8 +124,8 @@ struct MsMeshInfo
   "\n"                                                                    \
   "layout(set = 1, binding = 0) uniform MaterialUniform\n"                \
   "{\n"                                                                   \
+  "  float mat;\n"                                                        \
   "  vec3 color;\n"                                                       \
-  "  mat4 mat;\n"                                                       \
   "} material;\n"                                                         \
   "\n"                                                                    \
   "layout(location = 0) in vec3 inPos;\n"                                 \
@@ -135,7 +135,7 @@ struct MsMeshInfo
   "{\n"                                                                   \
   "  float d = dot(normalize(global.cameraForward), normalize(inPos));\n" \
   "  d = pow(d * 0.5 + 0.5, 1);\n"                                        \
-  "  outColor = vec4(material.color * material.mat[0][0], 1.0);\n"                         \
+  "  outColor = vec4(material.color * material.mat, 1.0);\n"              \
   "}\n"
 
 enum MsInputType

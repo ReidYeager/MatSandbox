@@ -58,9 +58,11 @@ MsResult RenderCode()
   ImGui::Text("Vertex shader");
   if (ImGui::Button("Compile Vert"))
   {
-    MS_ATTEMPT(MsCompileShader(Opal_Shader_Vertex, vertCodeBuffer));
-    MS_ATTEMPT(MsUpdateShader(Opal_Shader_Vertex));
-    MS_ATTEMPT(MsUpdateMaterial());
+    if (MsCompileShader(Opal_Shader_Vertex, vertCodeBuffer) == Ms_Success)
+    {
+      MS_ATTEMPT(MsUpdateShader(Opal_Shader_Vertex));
+      MS_ATTEMPT(MsUpdateMaterial());
+    }
   }
   ImGui::InputTextMultiline(
     "##vertSource",
@@ -75,9 +77,11 @@ MsResult RenderCode()
   ImGui::Text("Fragment shader");
   if (ImGui::Button("Compile Frag"))
   {
-    MS_ATTEMPT(MsCompileShader(Opal_Shader_Fragment, fragCodeBuffer));
-    MS_ATTEMPT(MsUpdateShader(Opal_Shader_Fragment));
-    MS_ATTEMPT(MsUpdateMaterial());
+    if (MsCompileShader(Opal_Shader_Fragment, fragCodeBuffer) == Ms_Success)
+    {
+      MS_ATTEMPT(MsUpdateShader(Opal_Shader_Fragment));
+      MS_ATTEMPT(MsUpdateMaterial());
+    }
   }
   ImGui::InputTextMultiline(
     "##fragSource",

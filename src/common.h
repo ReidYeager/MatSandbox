@@ -37,7 +37,7 @@ uint32_t MsBufferElementSize(MsBufferElementType element);
 MsResult Render();
 MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgumentIndex);
 MsResult MsUpdateInputArgument(MsInputArgument* argument);
-uint32_t MsPadForUniform(uint32_t size);
+uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType nextElement);
 
 MsResult LoadMesh(const char* path, OpalMesh* outMesh);
 

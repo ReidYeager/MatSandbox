@@ -23,9 +23,28 @@ uint32_t MsBufferElementSize(MsBufferElementType element)
   }
 }
 
-uint32_t MsPadForUniform(uint32_t size)
+uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType nextElement)
 {
-  return (size + 15) & ~15; // Elements must be multiples of 16 bytes long
+  uint32_t alignment = 0;
+  switch (nextElement)
+  {
+  case Ms_Buffer_Float: case Ms_Buffer_Int: case Ms_Buffer_Uint: alignment = 4; break;
+  case Ms_Buffer_Float2: case Ms_Buffer_Int2: case Ms_Buffer_Uint2: alignment = 8; break;
+
+  case Ms_Buffer_Float3: case Ms_Buffer_Int3: case Ms_Buffer_Uint3:
+  case Ms_Buffer_Float4: case Ms_Buffer_Int4: case Ms_Buffer_Uint4: alignment = 16; break;
+
+  case Ms_Buffer_double: alignment = 8; break;
+  case Ms_Buffer_double2: alignment = 16; break;
+  case Ms_Buffer_double3: case Ms_Buffer_double4: alignment = 32; break;
+
+  case Ms_Buffer_Mat4: alignment = 16; break;
+
+  default: return offset;
+  }
+
+  alignment -= 1;
+  return (offset + alignment) & ~alignment;
 }
 
 const char* GetShaderTypeExtension(OpalShaderType type)
@@ -197,7 +216,7 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
   for (uint32_t i = 0; i < info.bufferInfo.elementCount; i++)
   {
     uint32_t elementSize = MsBufferElementSize(info.bufferInfo.pElementTypes[i]);
-    bufferSize += MsPadForUniform(elementSize);
+    bufferSize += elementSize;
     pElements[i].type = info.bufferInfo.pElementTypes[i];
     pElements[i].data = LapisMemAllocZero(elementSize);
 
@@ -260,9 +279,12 @@ MsResult MsUpdateInputArgument(MsInputArgument* argument)
     for (uint32_t i = 0; i < argument->data.buffer.elementCount; i++)
     {
       element = &buffer->pElements[i];
+
+      offset = MsBufferOffsetToBaseAlignment(offset, element->type);
+
       elementSize = MsBufferElementSize(element->type);
       MS_ATTEMPT_OPAL(OpalBufferPushDataSegment(buffer->buffer, buffer->pElements[i].data, elementSize, offset));
-      offset += MsPadForUniform(elementSize);
+      offset += elementSize;
     }
   }
 
