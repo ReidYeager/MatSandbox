@@ -3,12 +3,20 @@
 
 void HandleInput()
 {
-  float scrollAmount = LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Wheel);
-  if (scrollAmount != 0.0f)
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
+
+  if (state.inputState.previewHovered)
   {
-    state.camera.armLength -= scrollAmount * 0.1f;
-    UpdateCamera();
+    float scrollAmount = LapisInputGetValue(state.window.lapis, Lapis_Input_Axis_Mouse_Wheel);
+    if (scrollAmount != 0.0f)
+    {
+      state.camera.armLength -= scrollAmount * 0.1f;
+      UpdateCamera();
+    }
   }
+
+  if (!state.inputState.previewFocused)
+    return;
 
   if (LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Mouse_Right)
     || LapisInputGetValue(state.window.lapis, Lapis_Input_Button_R))
@@ -40,8 +48,6 @@ void HandleInput()
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_2)) state.meshIndex = 1;
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_3)) state.meshIndex = 2;
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_4)) state.meshIndex = 3;
-
-  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
 }
 
 MsResult UpdateSceneRenderComponents()

@@ -231,6 +231,12 @@ struct MatSandboxState
 {
   MsbWindow window;
 
+  struct
+  {
+    bool previewFocused;
+    bool previewHovered;
+  } inputState;
+
   Vec2I sceneGuiExtentsPrevFrame;
   OpalImage sceneImage;
   OpalImage depthImage;

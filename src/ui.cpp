@@ -213,13 +213,11 @@ MsResult RenderArguments()
 
   if (ImGui::CollapsingHeader("Global", ImGuiTreeNodeFlags_DefaultOpen))
   {
-    ImGuiIO& io = ImGui::GetIO();
     RenderGlobalArguments();
   }
 
   if (ImGui::CollapsingHeader("Custom", ImGuiTreeNodeFlags_DefaultOpen))
   {
-    ImGuiIO& io = ImGui::GetIO();
     RenderCustomArguments();
   }
 
@@ -235,6 +233,10 @@ MsResult RenderPreview()
   ImVec2 min = ImGui::GetWindowContentRegionMin();
   ImVec2 max = ImGui::GetWindowContentRegionMax();
   state.sceneGuiExtentsPrevFrame = { (int32_t)(max.x - min.x), (int32_t)(max.y - min.y) };
+
+  state.inputState.previewFocused = ImGui::IsWindowFocused();
+  state.inputState.previewHovered = ImGui::IsWindowHovered();
+
   ImGui::End();
 
   return Ms_Success;
@@ -252,7 +254,15 @@ MsResult RenderImguiUi()
   MS_ATTEMPT(RenderArguments());
   MS_ATTEMPT(RenderPreview());
 
-  //ImGui::ShowDemoWindow();
+  ImGui::ShowDemoWindow();
+
+  ImGui::EndFrame();
+
+  ImGuiIO& io = ImGui::GetIO();
+  if (!state.inputState.previewFocused && state.inputState.previewHovered && io.MouseClicked[1])
+  {
+    ImGui::SetWindowFocus("Preview");
+  }
 
   ImGui::Render();
   ImDrawData* drawData = ImGui::GetDrawData();
