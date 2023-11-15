@@ -208,8 +208,10 @@ void MsUpdateMaterialValues()
   }
 }
 
-MsResult MsBufferAddElement(MsInputArgumentBuffer* buffer, MsBufferElementType type)
+MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
 {
+  MsInputArgumentBuffer* buffer = &argument->data.buffer;
+
   // Add element
   uint32_t newElementIndex = buffer->elementCount;
 
@@ -222,7 +224,7 @@ MsResult MsBufferAddElement(MsInputArgumentBuffer* buffer, MsBufferElementType t
   MsBufferElement* newElement = &buffer->pElements[newElementIndex];
 
   newElement->name = LapisMemAllocArray(char, 128);
-  sprintf(newElement->name, "New %s", MsBufferElementTypeNames[type]);
+  sprintf(newElement->name, "%u:%u %s", argument->id, buffer->elementCount - 1, MsBufferElementTypeNames[type]);
   newElement->type = type;
   newElement->data = LapisMemAllocZero(MsBufferElementSize(type));
 
@@ -264,7 +266,7 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
     pElements[i].type = info.bufferInfo.pElementTypes[i];
     pElements[i].data = LapisMemAllocZero(elementSize);
     pElements[i].name = LapisMemAllocArray(char, 128);
-    sprintf(pElements[i].name, "Buffer element %u", i);
+    sprintf(pElements[i].name, "%u:%u %s", argument->id, i, MsBufferElementTypeNames[info.bufferInfo.pElementTypes[i]]);
   }
 
   OpalBufferInitInfo bufferInfo;
@@ -291,17 +293,17 @@ MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgume
 {
   MsInputArgument newArgument = {};
 
+  newArgument.id = state.materialInfo.inputArgumentNextId++;
+  *outArgumentIndex = state.materialInfo.inputArgumentCount;
+  state.materialInfo.inputArgumentCount++;
+  newArgument.name = LapisMemAllocArray(char, 128);
+  sprintf(newArgument.name, "Input argument %u", newArgument.id);
+
   if (info.type == Ms_Input_Buffer)
   {
     MS_ATTEMPT(InitBufferArgument(&newArgument, info));
   }
 
-  newArgument.name.resize(128);
-  sprintf(newArgument.name.data(), "Input argument %u", state.materialInfo.inputArgumentCount);
-
-  *outArgumentIndex = state.materialInfo.inputArgumentCount;
-
-  state.materialInfo.inputArgumentCount++;
   state.materialInfo.pInputArguements = (MsInputArgument*)LapisMemRealloc(
     state.materialInfo.pInputArguements,
     sizeof(MsInputArgument) * state.materialInfo.inputArgumentCount);

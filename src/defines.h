@@ -102,40 +102,47 @@ struct MsMeshInfo
   "layout(location = 1) in vec3 inNormal;\n"                              \
   "layout(location = 2) in vec2 inUv;\n"                                  \
   "\n"                                                                    \
-  "layout(location = 0) out vec3 outPos;\n"                               \
+  "layout(location = 0) out vec3 outNormal;\n"                            \
+  "layout(location = 1) out vec2 outUv;\n"                                \
   "\n"                                                                    \
   "void main()\n"                                                         \
   "{\n"                                                                   \
   "  vec4 p = global.camProj * global.camView * vec4(inPosition, 1.0);\n" \
-  "  outPos = inNormal;\n"                                                \
   "  gl_Position = p;\n"                                                  \
+  "\n"                                                                    \
+  "  outNormal = inNormal;\n"                                             \
+  "  outUv = inUv;\n"                                                     \
   "}\n"
 
 
-#define MATSANDBOX_FRAG_DEFAULT_SOURCE                                    \
-  "#version 460\n"                                                        \
-  "\n"                                                                    \
-  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"           \
-  "{\n"                                                                   \
-  "  mat4 camView;\n"                                                     \
-  "  mat4 camProj;\n"                                                     \
-  "  vec3 cameraForward;\n"                                               \
-  "} global;\n"                                                           \
-  "\n"                                                                    \
-  "layout(set = 1, binding = 0) uniform MaterialUniform\n"                \
-  "{\n"                                                                   \
-  "  float mat;\n"                                                        \
-  "  vec3 color;\n"                                                       \
-  "} material;\n"                                                         \
-  "\n"                                                                    \
-  "layout(location = 0) in vec3 inPos;\n"                                 \
-  "layout(location = 0) out vec4 outColor;\n"                             \
-  "\n"                                                                    \
-  "void main()\n"                                                         \
-  "{\n"                                                                   \
-  "  float d = dot(normalize(global.cameraForward), normalize(inPos));\n" \
-  "  d = pow(d * 0.5 + 0.5, 1);\n"                                        \
-  "  outColor = vec4(material.color * material.mat, 1.0);\n"              \
+#define MATSANDBOX_FRAG_DEFAULT_SOURCE                                       \
+  "#version 460\n"                                                           \
+  "\n"                                                                       \
+  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"              \
+  "{\n"                                                                      \
+  "  mat4 camView;\n"                                                        \
+  "  mat4 camProj;\n"                                                        \
+  "  vec3 cameraForward;\n"                                                  \
+  "} global;\n"                                                              \
+  "\n"                                                                       \
+  "//layout(set = 1, binding = 0) uniform MaterialUniform\n"                 \
+  "//{\n"                                                                    \
+  "//  vec3 color;\n"                                                        \
+  "//} material;\n"                                                          \
+  "\n"                                                                       \
+  "//layout(set = 1, binding = 1) uniform sampler2D tex\n"                   \
+  "\n"                                                                       \
+  "layout(location = 0) in vec3 inNormal;\n"                                 \
+  "layout(location = 1) in vec2 inUv;\n"                                     \
+  "\n"                                                                       \
+  "layout(location = 0) out vec4 outColor;\n"                                \
+  "\n"                                                                       \
+  "void main()\n"                                                            \
+  "{\n"                                                                      \
+  "  float d = dot(normalize(global.cameraForward), normalize(inNormal));\n" \
+  "  d = pow(d * 0.5 + 0.5, 1);\n"                                           \
+  "  outColor = vec4(1.0);\n"                                                \
+  "  //outColor = vec4(texture(tex, inUv).xyz, 1.0);\n"                      \
   "}\n"
 
 enum MsInputType
@@ -214,7 +221,8 @@ struct MsInputArgumentBuffer
 
 struct MsInputArgument
 {
-  std::string name;
+  uint32_t id;
+  char* name;
   MsInputType type;
   union
   {
@@ -242,6 +250,7 @@ struct MsInputArgumentInitInfo
 
 struct MsMaterialInfo
 {
+  uint32_t inputArgumentNextId = 0;
   uint32_t inputArgumentCount;
   MsInputArgument* pInputArguements;
 

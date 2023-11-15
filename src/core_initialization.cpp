@@ -233,17 +233,6 @@ MsResult InitMaterial()
   MsUpdateShader(Opal_Shader_Vertex);
   MsUpdateShader(Opal_Shader_Fragment);
 
-  // TODO : !!! Remove this. Temp input buffer argument information for testing
-  MsBufferElementType vecType[2] = { Ms_Buffer_Float, Ms_Buffer_Float3 };
-  MsInputArgumentInitInfo argumentInfo;
-  argumentInfo.type = Ms_Input_Buffer;
-  argumentInfo.bufferInfo.elementCount = 2;
-  argumentInfo.bufferInfo.pElementTypes = vecType;
-  uint32_t bufferArgIndex = 0;
-  MsCreateInputArgument(argumentInfo, &bufferArgIndex);
-  *((Vec3*)state.materialInfo.pInputArguements[bufferArgIndex].data.buffer.pElements[1].data) = { 0.5f, 0.2f, 0.9f };
-  MsUpdateInputArgument(&state.materialInfo.pInputArguements[bufferArgIndex]);
-
   MS_ATTEMPT(MsUpdateMaterialInputLayoutAndSet());
 
   OpalMaterialInitInfo matInfo = { 0 };

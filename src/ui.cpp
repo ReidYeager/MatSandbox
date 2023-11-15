@@ -10,12 +10,15 @@ MsResult RenderUi()
 
 void RenderImguiMatrix(const char* title, Mat4* data)
 {
-  static char titleBuffer[128] = { 0 };
+  static char titleBuffer[128];
 
   ImGui::Columns(4);
   for (uint32_t row = 0; row < 4; row++)
+  {
     for (uint32_t column = 0; column < 4; column++)
     {
+      ImGui::PushID((4 * row) + column);
+
       char colChar, rowChar;
 
       switch (column)
@@ -36,11 +39,13 @@ void RenderImguiMatrix(const char* title, Mat4* data)
 
       sprintf(titleBuffer, "##%s-%c%c", title, rowChar, colChar);
 
-      {
-        ImGui::DragFloat(titleBuffer, &data->elements[(4 * column) + row], 0.01f);
-        ImGui::NextColumn();
-      }
+      ImGui::DragFloat(titleBuffer, &data->elements[(4 * row) + column], 0.01f);
+
+      ImGui::PopID();
     }
+
+    ImGui::NextColumn();
+  }
   ImGui::Columns(1);
 }
 
@@ -185,86 +190,105 @@ void RenderBufferArgumentElements(MsInputArgumentBuffer* buffer)
   }
 }
 
+MsBufferElementType ShowBufferAddElementMenu()
+{
+  MsBufferElementType newType = Ms_Buffer_COUNT;
+
+  if (ImGui::BeginMenu("Int"))
+  {
+    if (ImGui::MenuItem("Int"))
+      newType = Ms_Buffer_Int;
+    if (ImGui::MenuItem("Int2"))
+      newType = Ms_Buffer_Int2;
+    if (ImGui::MenuItem("Int3"))
+      newType = Ms_Buffer_Int3;
+    if (ImGui::MenuItem("Int4"))
+      newType = Ms_Buffer_Int4;
+    ImGui::EndMenu();
+  }
+
+  if (ImGui::BeginMenu("Uint"))
+  {
+    if (ImGui::MenuItem("Uint"))
+      newType = Ms_Buffer_Uint;
+    if (ImGui::MenuItem("Uint2"))
+      newType = Ms_Buffer_Uint2;
+    if (ImGui::MenuItem("Uint3"))
+      newType = Ms_Buffer_Uint3;
+    if (ImGui::MenuItem("Uint4"))
+      newType = Ms_Buffer_Uint4;
+    ImGui::EndMenu();
+  }
+
+  if (ImGui::BeginMenu("Float"))
+  {
+    if (ImGui::MenuItem("Float"))
+      newType = Ms_Buffer_Float;
+    if (ImGui::MenuItem("Float2"))
+      newType = Ms_Buffer_Float2;
+    if (ImGui::MenuItem("Float3"))
+      newType = Ms_Buffer_Float3;
+    if (ImGui::MenuItem("Float4"))
+      newType = Ms_Buffer_Float4;
+    ImGui::EndMenu();
+  }
+
+  if (ImGui::BeginMenu("Double"))
+  {
+    if (ImGui::MenuItem("Double"))
+      newType = Ms_Buffer_Double;
+    if (ImGui::MenuItem("Double2"))
+      newType = Ms_Buffer_Double2;
+    if (ImGui::MenuItem("Double3"))
+      newType = Ms_Buffer_Double3;
+    if (ImGui::MenuItem("Double4"))
+      newType = Ms_Buffer_Double4;
+    ImGui::EndMenu();
+  }
+
+  if (ImGui::Selectable("Mat4"))
+  {
+    newType = Ms_Buffer_Mat4;
+  }
+
+  return newType;
+}
+
 void RenderBufferAddElement(uint32_t argIndex)
 {
-  MsInputArgumentBuffer* buffer = &state.materialInfo.pInputArguements[argIndex].data.buffer;
+  ImGui::PushID(argIndex);
 
-  if (ImGui::Button("Add"))
-    ImGui::OpenPopup("BufferAddPopup");
+  if (ImGui::Button("Add element"))
+    ImGui::OpenPopup("BufferElementAddPopup");
 
-  if (ImGui::BeginPopup("BufferAddPopup"))
+  if (ImGui::BeginPopup("BufferElementAddPopup"))
   {
-    if (ImGui::BeginMenu("Int"))
-    {
-      if (ImGui::MenuItem("Int"))
-        MsBufferAddElement(buffer, Ms_Buffer_Int);
-      if (ImGui::MenuItem("Int2"))
-        MsBufferAddElement(buffer, Ms_Buffer_Int2);
-      if (ImGui::MenuItem("Int3"))
-        MsBufferAddElement(buffer, Ms_Buffer_Int3);
-      if (ImGui::MenuItem("Int4"))
-        MsBufferAddElement(buffer, Ms_Buffer_Int4);
-      ImGui::EndMenu();
-    }
+    MsBufferElementType newType = ShowBufferAddElementMenu();
 
-    if (ImGui::BeginMenu("Uint"))
+    if (newType != Ms_Buffer_COUNT)
     {
-      if (ImGui::MenuItem("Uint"))
-        MsBufferAddElement(buffer, Ms_Buffer_Uint);
-      if (ImGui::MenuItem("Uint2"))
-        MsBufferAddElement(buffer, Ms_Buffer_Uint2);
-      if (ImGui::MenuItem("Uint3"))
-        MsBufferAddElement(buffer, Ms_Buffer_Uint3);
-      if (ImGui::MenuItem("Uint4"))
-        MsBufferAddElement(buffer, Ms_Buffer_Uint4);
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Float"))
-    {
-      if (ImGui::MenuItem("Float"))
-        MsBufferAddElement(buffer, Ms_Buffer_Float);
-      if (ImGui::MenuItem("Float2"))
-        MsBufferAddElement(buffer, Ms_Buffer_Float2);
-      if (ImGui::MenuItem("Float3"))
-        MsBufferAddElement(buffer, Ms_Buffer_Float3);
-      if (ImGui::MenuItem("Float4"))
-        MsBufferAddElement(buffer, Ms_Buffer_Float4);
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Double"))
-    {
-      if (ImGui::MenuItem("Double"))
-        MsBufferAddElement(buffer, Ms_Buffer_Double);
-      if (ImGui::MenuItem("Double2"))
-        MsBufferAddElement(buffer, Ms_Buffer_Double2);
-      if (ImGui::MenuItem("Double3"))
-        MsBufferAddElement(buffer, Ms_Buffer_Double3);
-      if (ImGui::MenuItem("Double4"))
-        MsBufferAddElement(buffer, Ms_Buffer_Double4);
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::Selectable("Mat4"))
-    {
-      MsBufferAddElement(buffer, Ms_Buffer_Mat4);
+      MsBufferAddElement(&state.materialInfo.pInputArguements[argIndex], newType);
     }
 
     ImGui::EndPopup();
   }
+
+  ImGui::PopID();
 }
 
 void RenderCustomArguments()
 {
   MsInputArgument* argument = NULL;
+  static char nameBuffer[128];
+
   for (uint32_t i = 0; i < state.materialInfo.inputArgumentCount; i++)
   {
     argument = state.materialInfo.pInputArguements + i;
+    sprintf(nameBuffer, "%u : %s", i, argument->name);
+
     if (argument->type == Ms_Input_Buffer)
     {
-      ImGui::SeparatorText("Test buffer");
-      ImGui::SameLine();
+      ImGui::SeparatorText(nameBuffer);
       RenderBufferAddElement(i);
       RenderBufferArgumentElements(&argument->data.buffer);
     }
@@ -273,6 +297,38 @@ void RenderCustomArguments()
       // Do image stuff here
       ImGui::Text("This should be an image");
     }
+  }
+}
+
+void RenderAddArgument()
+{
+  if (ImGui::Button("Add argument"))
+    ImGui::OpenPopup("ArgumentAddPopup");
+
+  if (ImGui::BeginPopup("ArgumentAddPopup"))
+  {
+    if (ImGui::BeginMenu("Buffer"))
+    {
+      MsBufferElementType firstType = ShowBufferAddElementMenu();
+      if (firstType != Ms_Buffer_COUNT)
+      {
+        MsInputArgumentInitInfo argumentInfo;
+        argumentInfo.type = Ms_Input_Buffer;
+        argumentInfo.bufferInfo.elementCount = 1;
+        argumentInfo.bufferInfo.pElementTypes = &firstType;
+        uint32_t newArgIndex;
+        MsCreateInputArgument(argumentInfo, &newArgIndex);
+      }
+
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::Selectable("Image"))
+    {
+      // init image argument
+    }
+
+    ImGui::EndPopup();
   }
 }
 
@@ -287,6 +343,7 @@ MsResult RenderArguments()
 
   if (ImGui::CollapsingHeader("Custom", ImGuiTreeNodeFlags_DefaultOpen))
   {
+    RenderAddArgument();
     RenderCustomArguments();
   }
 

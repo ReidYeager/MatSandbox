@@ -34,7 +34,7 @@ void MsUpdateMaterialValues();
 MsResult MsUpdateMaterialInputLayoutAndSet();
 MsResult MsUpdateMaterial();
 uint32_t MsBufferElementSize(MsBufferElementType element);
-MsResult MsBufferAddElement(MsInputArgumentBuffer* buffer, MsBufferElementType type);
+MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type);
 MsResult Render();
 MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgumentIndex);
 MsResult MsUpdateInputArgument(MsInputArgument* argument);
