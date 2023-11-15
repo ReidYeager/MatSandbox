@@ -60,7 +60,7 @@ MsResult RenderCode()
   // =====
   // Vert
   // =====
-  ImGui::Text("Vertex shader");
+  ImGui::SeparatorText("Vertex shader");
   if (ImGui::Button("Compile Vert"))
   {
     if (MsCompileShader(Opal_Shader_Vertex, vertCodeBuffer) == Ms_Success)
@@ -79,7 +79,8 @@ MsResult RenderCode()
   // =====
   // Frag
   // =====
-  ImGui::Text("Fragment shader");
+  ImGui::Spacing();
+  ImGui::SeparatorText("Fragment shader");
   if (ImGui::Button("Compile Frag"))
   {
     if (MsCompileShader(Opal_Shader_Fragment, fragCodeBuffer) == Ms_Success)
@@ -295,7 +296,10 @@ void RenderCustomArguments()
     else
     {
       // Do image stuff here
-      ImGui::Text("This should be an image");
+      ImGui::Image(argument->data.image.set->vk.descriptorSet, { 64.0f, 64.0f });
+      ImGui::SameLine();
+      sprintf(nameBuffer, "%u : %s", i, argument->name);
+      ImGui::Text("%s", nameBuffer);
     }
   }
 }
@@ -325,11 +329,44 @@ void RenderAddArgument()
 
     if (ImGui::Selectable("Image"))
     {
-      // init image argument
+      printf("This button doesn't work. Figure out why\n");
+      ImGui::OpenPopup("AddImageModal");
     }
 
     ImGui::EndPopup();
   }
+
+  if (ImGui::Button("Temporary Add image"))
+    ImGui::OpenPopup("AddImageModal");
+
+  ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+  ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+  if (ImGui::BeginPopupModal("AddImageModal", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+  {
+    static char pathBuffer[1024] = { 0 };
+    ImGui::InputText("Image path", pathBuffer, 1024);
+
+    if (ImGui::Button("Done", ImVec2(120, 0)))
+    {
+      ImGui::CloseCurrentPopup();
+
+      MsInputArgumentInitInfo argumentInfo;
+      argumentInfo.type = Ms_Input_Image;
+      argumentInfo.imageInfo.imagePath = pathBuffer;
+      uint32_t newArgIndex;
+      MsCreateInputArgument(argumentInfo, &newArgIndex);
+    }
+    ImGui::SetItemDefaultFocus();
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel", ImVec2(120, 0)))
+    {
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+  }
+
 }
 
 MsResult RenderArguments()

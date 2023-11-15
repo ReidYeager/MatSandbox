@@ -189,13 +189,13 @@ MsResult InitUiRenderResources()
   OpalInputType type = Opal_Input_Type_Samped_Image;
   layoutInfo.count = 1;
   layoutInfo.pTypes = &type;
-  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&state.uiSceneImageInputLayout, layoutInfo));
+  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&state.uiSingleImageInputLayout, layoutInfo));
 
   OpalMaterialInputValue inputValue = { 0 };
   inputValue.image = state.sceneImage;
 
   OpalInputSetInitInfo setInfo = { 0 };
-  setInfo.layout = state.uiSceneImageInputLayout;
+  setInfo.layout = state.uiSingleImageInputLayout;
   setInfo.pInputValues = &inputValue;
   MS_ATTEMPT_OPAL(OpalInputSetInit(&state.uiSceneImageInputSet, setInfo));
 

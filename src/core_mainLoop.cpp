@@ -48,6 +48,7 @@ void HandleInput()
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_2)) state.meshIndex = 1;
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_3)) state.meshIndex = 2;
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_4)) state.meshIndex = 3;
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_5)) state.meshIndex = 4;
 }
 
 MsResult UpdateSceneRenderComponents()

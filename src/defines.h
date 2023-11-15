@@ -125,13 +125,6 @@ struct MsMeshInfo
   "  vec3 cameraForward;\n"                                                  \
   "} global;\n"                                                              \
   "\n"                                                                       \
-  "//layout(set = 1, binding = 0) uniform MaterialUniform\n"                 \
-  "//{\n"                                                                    \
-  "//  vec3 color;\n"                                                        \
-  "//} material;\n"                                                          \
-  "\n"                                                                       \
-  "//layout(set = 1, binding = 1) uniform sampler2D tex\n"                   \
-  "\n"                                                                       \
   "layout(location = 0) in vec3 inNormal;\n"                                 \
   "layout(location = 1) in vec2 inUv;\n"                                     \
   "\n"                                                                       \
@@ -139,10 +132,7 @@ struct MsMeshInfo
   "\n"                                                                       \
   "void main()\n"                                                            \
   "{\n"                                                                      \
-  "  float d = dot(normalize(global.cameraForward), normalize(inNormal));\n" \
-  "  d = pow(d * 0.5 + 0.5, 1);\n"                                           \
   "  outColor = vec4(1.0);\n"                                                \
-  "  //outColor = vec4(texture(tex, inUv).xyz, 1.0);\n"                      \
   "}\n"
 
 enum MsInputType
@@ -201,6 +191,7 @@ static const char* MsBufferElementTypeNames[Ms_Buffer_COUNT] =
 struct MsInputArgumentImage
 {
   OpalImage image;
+  OpalInputSet set;
 };
 
 struct MsBufferElement
@@ -243,7 +234,7 @@ struct MsInputArgumentInitInfo
     } bufferInfo;
     struct
     {
-      int x;
+      char* imagePath;
     } imageInfo;
   };
 };
@@ -277,7 +268,7 @@ struct MatSandboxState
   OpalRenderpass sceneRenderpass;
   OpalFramebuffer sceneFramebuffer;
 
-  OpalInputLayout uiSceneImageInputLayout;
+  OpalInputLayout uiSingleImageInputLayout;
   OpalInputSet uiSceneImageInputSet;
   OpalRenderpass uiRenderpass;
   OpalFramebuffer uiFramebuffer;

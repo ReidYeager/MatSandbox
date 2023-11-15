@@ -6,7 +6,8 @@ A shader editor written in C/C++ using Vulkan to allow for quick GLSL iteration.
 Runs shader compilation and allows for the customization of the input set at runtime with an ImGui interface.
 
 ## Next steps:
-- Image inputs
+- Input argument improvements
+	- Styling, removal, rearranging, image re-import
 - Code <-> Arguments panel synchronization
 - Renderpass editing
 

@@ -3,6 +3,9 @@
 
 #include <lapis.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 uint32_t MsBufferElementSize(MsBufferElementType element)
 {
   switch (element)
@@ -158,19 +161,19 @@ MsResult MsUpdateMaterialInputLayoutAndSet()
   {
     MsInputArgument* argument = &state.materialInfo.pInputArguements[i];
 
-    inputInfo->index = i;
+    inputInfo[i].index = i;
 
     switch (argument->type)
     {
     case Ms_Input_Buffer:
     {
-      inputInfo->type = Opal_Input_Type_Uniform_Buffer;
-      inputInfo->value.buffer = argument->data.buffer.buffer;
+      inputInfo[i].type = Opal_Input_Type_Uniform_Buffer;
+      inputInfo[i].value.buffer = argument->data.buffer.buffer;
     } break;
     case Ms_Input_Image:
     {
-      inputInfo->type = Opal_Input_Type_Samped_Image;
-      inputInfo->value.image = argument->data.image.image;
+      inputInfo[i].type = Opal_Input_Type_Samped_Image;
+      inputInfo[i].value.image = argument->data.image.image;
     } break;
     default: return Ms_Fail;
     }
@@ -289,10 +292,51 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
   return Ms_Success;
 }
 
+MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
+{
+  MsInputArgumentImage* image = &argument->data.image;
+
+  int channels;
+  int32_t imageWidth = 0, imageHeight = 0;
+  stbi_uc* imageSource = stbi_load(
+  info.imageInfo.imagePath,
+  &imageWidth,
+  &imageHeight,
+  &channels,
+  STBI_rgb_alpha);
+
+  if (imageWidth <= 0 || imageWidth <= 0 || imageSource == NULL)
+  {
+    LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"", info.imageInfo.imagePath);
+    return Ms_Fail;
+  }
+
+  OpalImageInitInfo initInfo;
+  initInfo.extent = { (uint32_t)imageWidth, (uint32_t)imageHeight, 1 };
+  initInfo.sampleType = Opal_Sample_Bilinear;
+  initInfo.usage = Opal_Image_Usage_Uniform;
+  initInfo.format = Opal_Format_RGBA8;
+  MS_ATTEMPT_OPAL(OpalImageInit(&image->image, initInfo));
+  MS_ATTEMPT_OPAL(OpalImageFill(image->image, imageSource));
+
+  stbi_image_free(imageSource);
+
+  OpalMaterialInputValue inImage;
+  inImage.image = image->image;
+
+  OpalInputSetInitInfo setInfo = { 0 };
+  setInfo.layout = state.uiSingleImageInputLayout;
+  setInfo.pInputValues = &inImage;
+  MS_ATTEMPT_OPAL(OpalInputSetInit(&image->set, setInfo));
+
+  return Ms_Success;
+}
+
 MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgumentIndex)
 {
   MsInputArgument newArgument = {};
 
+  newArgument.type = info.type;
   newArgument.id = state.materialInfo.inputArgumentNextId++;
   *outArgumentIndex = state.materialInfo.inputArgumentCount;
   state.materialInfo.inputArgumentCount++;
@@ -303,11 +347,14 @@ MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgume
   {
     MS_ATTEMPT(InitBufferArgument(&newArgument, info));
   }
+  else
+  {
+    MS_ATTEMPT(InitImageArgument(&newArgument, info));
+  }
 
-  state.materialInfo.pInputArguements = (MsInputArgument*)LapisMemRealloc(
-    state.materialInfo.pInputArguements,
-    sizeof(MsInputArgument) * state.materialInfo.inputArgumentCount);
-  LapisMemCopy(&newArgument, state.materialInfo.pInputArguements + *outArgumentIndex, sizeof(MsInputArgument));
+  state.materialInfo.pInputArguements = (MsInputArgument*)LapisMemRealloc(state.materialInfo.pInputArguements, sizeof(MsInputArgument) * state.materialInfo.inputArgumentCount);
+  state.materialInfo.pInputArguements[state.materialInfo.inputArgumentCount - 1] = newArgument;
+  //LapisMemCopy(&newArgument, state.materialInfo.pInputArguements + *outArgumentIndex, sizeof(MsInputArgument));
 
   return Ms_Success;
 }
