@@ -37,6 +37,7 @@ add_executable(MatSandbox
   src/mesh.cpp
 
   src/ui.cpp
+  src/ui_arguments.cpp
 
   external/imgui/imgui.cpp
   external/imgui/imgui_demo.cpp

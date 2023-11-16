@@ -361,6 +361,7 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
 
   newArgument.type = info.type;
   newArgument.id = set->nextId++;
+  newArgument.shouldKeep = true;
   newArgument.name = LapisMemAllocArray(char, 128);
   sprintf(newArgument.name, "Input argument %u", newArgument.id);
 
@@ -378,6 +379,20 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
   set->pArguments[set->count - 1] = newArgument;
 
   MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(set));
+
+  return Ms_Success;
+}
+
+MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
+{
+  MsInputArgumentImage* image = &set->pArguments[imageIndex].data.image;
+
+  OpalImageShutdown(&image->image);
+
+  MsInputArgumentInitInfo newInfo;
+  newInfo.type = Ms_Input_Image;
+  newInfo.imageInfo.imagePath = path;
+  InitImageArgument(&set->pArguments[imageIndex], newInfo);
 
   return Ms_Success;
 }

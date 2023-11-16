@@ -31,6 +31,7 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info);
 MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set);
 MsResult MsInputSetPushBuffers(MsInputSet* set);
 MsResult MsUpdateInputArgument(MsInputArgument* argument);
+MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path);
 
 MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type);
 
@@ -42,6 +43,7 @@ MsResult MsUpdateMaterial();
 uint32_t MsGetBufferElementSize(MsBufferElementType element);
 uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType element); 
 
+MsResult MsUiShowArgumentsPanel();
 MsResult Render();
 
 MsResult LoadMesh(const char* path, OpalMesh* outMesh);
