@@ -4,6 +4,7 @@
 MsResult InitWindow();
 MsResult InitSceneRenderResources();
 MsResult InitUiRenderResources();
+MsResult InitGlobalSet();
 MsResult InitMaterial();
 MsResult InitMeshes();
 MsResult InitImgui();
@@ -40,6 +41,7 @@ MsResult MsInit()
   MS_ATTEMPT(InitWindow());
   MS_ATTEMPT(InitSceneRenderResources());
   MS_ATTEMPT(InitUiRenderResources());
+  MS_ATTEMPT(InitGlobalSet());
   MS_ATTEMPT(InitMaterial());
   MS_ATTEMPT(InitMeshes());
   MS_ATTEMPT(InitImgui());
@@ -47,7 +49,7 @@ MsResult MsInit()
   uint32_t windowWidth, windowHeight;
   LapisWindowGetExtents(state.window.lapis, &windowWidth, &windowHeight);
 
-  state.globalInputValues.camProj = ProjectionPerspectiveExtended(
+  *state.globalInputValues.camProj = ProjectionPerspectiveExtended(
     (float)windowWidth / (float)windowHeight,
     1.0f,    // 1:1 guaranteed ratio
     90.0f,   // VFov
@@ -66,7 +68,7 @@ MsResult InitWindow()
   lapisWindowInfo.fnResizeCallback = WindowResizeCallback;
   lapisWindowInfo.resizable = true;
   lapisWindowInfo.extents = { 1280, 720 };
-  lapisWindowInfo.position = { 100, 100 };
+  lapisWindowInfo.position = { 1800, 200 };
   lapisWindowInfo.title = "Material with lapis";
   LapisWindowInit(lapisWindowInfo, &state.window.lapis);
 
@@ -202,30 +204,27 @@ MsResult InitUiRenderResources()
   return Ms_Success;
 }
 
+MsResult InitGlobalSet()
+{
+  MsBufferElementType bufferContentTypes[3] = { Ms_Buffer_Mat4, Ms_Buffer_Mat4, Ms_Buffer_Float3 };
+
+  MsInputArgumentInitInfo bufferInfo;
+  bufferInfo.type = Ms_Input_Buffer;
+  bufferInfo.bufferInfo.elementCount = 3;
+  bufferInfo.bufferInfo.pElementTypes = bufferContentTypes;
+  MS_ATTEMPT(MsInputSetAddArgument(&state.globalInputSet, bufferInfo))
+
+  state.globalInputValues.camView = (Mat4*)state.globalInputSet.pArguments[0].data.buffer.pElements[0].data;
+  state.globalInputValues.camProj = (Mat4*)state.globalInputSet.pArguments[0].data.buffer.pElements[1].data;
+  state.globalInputValues.camForward = (Vec3*)state.globalInputSet.pArguments[0].data.buffer.pElements[2].data;
+
+  MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.globalInputSet));
+
+  return Ms_Success;
+}
+
 MsResult InitMaterial()
 {
-  OpalBufferInitInfo globalBufferInfo = {};
-  globalBufferInfo.size = sizeof(state.globalInputValues);
-  globalBufferInfo.usage = Opal_Buffer_Usage_Uniform;
-  MS_ATTEMPT_OPAL(OpalBufferInit(&state.globalInputBuffer, globalBufferInfo));
-
-  // Global input set
-  const uint32_t inputCount = 1;
-  OpalInputType inputTypes[inputCount] = { Opal_Input_Type_Uniform_Buffer };
-
-  OpalInputLayoutInitInfo globalLayoutInfo = {};
-  globalLayoutInfo.count = inputCount;
-  globalLayoutInfo.pTypes = inputTypes;
-  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&state.globalInputLayout, globalLayoutInfo));
-
-  OpalMaterialInputValue globalBufferValue = {};
-  globalBufferValue.buffer = state.globalInputBuffer;
-
-  OpalInputSetInitInfo globalSetInfo = {};
-  globalSetInfo.layout = state.globalInputLayout;
-  globalSetInfo.pInputValues = &globalBufferValue;
-  MS_ATTEMPT_OPAL(OpalInputSetInit(&state.globalInputSet, globalSetInfo));
-
   state.shaderCount = 2;
   state.pShaders = LapisMemAllocZeroArray(OpalShader, state.shaderCount);
   MsCompileShader(Opal_Shader_Vertex, MATSANDBOX_VERT_DEFAULT_SOURCE);
@@ -233,13 +232,13 @@ MsResult InitMaterial()
   MsUpdateShader(Opal_Shader_Vertex);
   MsUpdateShader(Opal_Shader_Fragment);
 
-  MS_ATTEMPT(MsUpdateMaterialInputLayoutAndSet());
+  MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.materialInputSet));
 
   OpalMaterialInitInfo matInfo = { 0 };
   matInfo.shaderCount = state.shaderCount;
   matInfo.pShaders = state.pShaders;
   matInfo.inputLayoutCount = 2;
-  OpalInputLayout layouts[2] = { state.globalInputLayout, state.materialInfo.inputLayout };
+  OpalInputLayout layouts[2] = { state.globalInputSet.layout, state.materialInputSet.layout };
   matInfo.pInputLayouts = layouts;
   matInfo.pushConstantSize = 0;
   matInfo.renderpass = state.sceneRenderpass;

@@ -6,7 +6,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-uint32_t MsBufferElementSize(MsBufferElementType element)
+uint32_t MsGetBufferElementSize(MsBufferElementType element)
 {
   switch (element)
   {
@@ -50,7 +50,7 @@ uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType elem
   return (offset + alignment) & ~alignment;
 }
 
-const char* GetShaderTypeExtension(OpalShaderType type)
+const char* MsGetShaderTypeExtension(OpalShaderType type)
 {
   const char* shaderTypeExtension;
   switch (type)
@@ -67,12 +67,12 @@ MsResult MsUpdateShader(OpalShaderType type)
 {
   bool isFragment = type == Opal_Shader_Fragment;
 
-  char shaderNameBuffer[SHADER_NAME_MAX_LENGTH];
-  sprintf_s(shaderNameBuffer, SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", GetShaderTypeExtension(type));
+  char shaderNameBuffer[MS_SHADER_NAME_MAX_LENGTH];
+  sprintf_s(shaderNameBuffer, MS_SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", MsGetShaderTypeExtension(type));
 
   OpalShader* shader = &state.pShaders[isFragment];
   OpalShaderInitInfo initInfo = {};
-  initInfo.type = isFragment ? Opal_Shader_Fragment : Opal_Shader_Vertex;
+  initInfo.type = type;
   initInfo.size = LapisFileRead(shaderNameBuffer, &initInfo.pSource);
   if (OpalShaderInit(shader, initInfo) != Opal_Success)
   {
@@ -96,7 +96,7 @@ MsResult CreateBuffer(MsInputArgumentBuffer* argument)
 
   for (uint32_t i = 0, elementSize = 0; i < argument->elementCount; i++)
   {
-    elementSize = MsBufferElementSize(argument->pElements[i].type);
+    elementSize = MsGetBufferElementSize(argument->pElements[i].type);
     if (argument->pElements[i].data == NULL)
     {
       argument->pElements[i].data = LapisMemAllocZero(elementSize);
@@ -115,51 +115,50 @@ MsResult CreateBuffer(MsInputArgumentBuffer* argument)
 
   for (uint32_t i = 0; i < argument->elementCount; i++)
   {
-    MS_ATTEMPT_OPAL(OpalBufferPushDataSegment(argument->buffer, argument->pElements[i].data, MsBufferElementSize(argument->pElements[i].type), argument->size));
+    MS_ATTEMPT_OPAL(OpalBufferPushDataSegment(argument->buffer, argument->pElements[i].data, MsGetBufferElementSize(argument->pElements[i].type), argument->size));
   }
 
   return Ms_Success;
 }
 
-MsResult MsUpdateMaterialInputLayoutAndSet()
+MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set)
 {
-  if (state.materialInfo.inputSet != NULL)
-    OpalInputSetShutdown(&state.materialInfo.inputSet);
-  if (state.materialInfo.inputLayout != NULL)
-    OpalInputLayoutShutdown(&state.materialInfo.inputLayout);
+  if (set->set != NULL)
+    OpalInputSetShutdown(&set->set);
+  if (set->layout != NULL)
+    OpalInputLayoutShutdown(&set->layout);
 
   OpalInputLayoutInitInfo layoutInfo = { 0 };
-  layoutInfo.count = state.materialInfo.inputArgumentCount;
+  layoutInfo.count = set->count;
   layoutInfo.pTypes = LapisMemAllocZeroArray(OpalInputType, layoutInfo.count);
 
   OpalInputSetInitInfo setInfo = { 0 };
   setInfo.pInputValues = LapisMemAllocZeroArray(OpalMaterialInputValue, layoutInfo.count);
 
-  for (uint32_t i = 0; i < state.materialInfo.inputArgumentCount; i++)
+  for (uint32_t i = 0; i < set->count; i++)
   {
-    if (state.materialInfo.pInputArguements[i].type == Ms_Input_Buffer)
+    if (set->pArguments[i].type == Ms_Input_Buffer)
     {
-      MS_ATTEMPT(CreateBuffer(&state.materialInfo.pInputArguements[i].data.buffer));
       layoutInfo.pTypes[i] = Opal_Input_Type_Uniform_Buffer;
-      setInfo.pInputValues[i].buffer = state.materialInfo.pInputArguements[i].data.buffer.buffer;
+      setInfo.pInputValues[i].buffer = set->pArguments[i].data.buffer.buffer;
     }
     else
     {
       layoutInfo.pTypes[i] = Opal_Input_Type_Samped_Image;
-      setInfo.pInputValues[i].image = state.materialInfo.pInputArguements[i].data.image.image;
+      setInfo.pInputValues[i].image = set->pArguments[i].data.image.image;
     }
   }
 
-  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&state.materialInfo.inputLayout, layoutInfo));
-  setInfo.layout = state.materialInfo.inputLayout;
+  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&set->layout, layoutInfo));
+  setInfo.layout = set->layout;
 
-  MS_ATTEMPT_OPAL(OpalInputSetInit(&state.materialInfo.inputSet, setInfo));
+  MS_ATTEMPT_OPAL(OpalInputSetInit(&set->set, setInfo));
 
   // Send arguments to the input set
-  OpalInputInfo* inputInfo = LapisMemAllocZeroArray(OpalInputInfo, state.materialInfo.inputArgumentCount);
-  for (uint32_t i = 0; i < state.materialInfo.inputArgumentCount; i++)
+  OpalInputInfo* inputInfo = LapisMemAllocZeroArray(OpalInputInfo, set->count);
+  for (uint32_t i = 0; i < set->count; i++)
   {
-    MsInputArgument* argument = &state.materialInfo.pInputArguements[i];
+    MsInputArgument* argument = &set->pArguments[i];
 
     inputInfo[i].index = i;
 
@@ -178,22 +177,26 @@ MsResult MsUpdateMaterialInputLayoutAndSet()
     default: return Ms_Fail;
     }
   }
-  MS_ATTEMPT_OPAL(OpalInputSetUpdate(state.materialInfo.inputSet, state.materialInfo.inputArgumentCount, inputInfo));
+  MS_ATTEMPT_OPAL(OpalInputSetUpdate(set->set, set->count, inputInfo));
   LapisMemFree(inputInfo);
 
   return Ms_Success;
 }
 
+uint32_t tmp = 0;
+
 MsResult MsUpdateMaterial()
 {
-  MS_ATTEMPT(MsUpdateMaterialInputLayoutAndSet());
+  MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.materialInputSet));
+
+  printf("%u\n", tmp);
 
   //MS_ATTEMPT_OPAL(OpalMaterialReinit(state.material));
   OpalMaterialInitInfo matInfo = { 0 };
   matInfo.shaderCount = state.shaderCount;
   matInfo.pShaders = state.pShaders;
   matInfo.inputLayoutCount = 2;
-  OpalInputLayout layouts[2] = { state.globalInputLayout, state.materialInfo.inputLayout };
+  OpalInputLayout layouts[2] = { state.globalInputSet.layout, state.materialInputSet.layout };
   matInfo.pInputLayouts = layouts;
   matInfo.pushConstantSize = 0;
   matInfo.renderpass = state.sceneRenderpass;
@@ -203,12 +206,32 @@ MsResult MsUpdateMaterial()
   return Ms_Success;
 }
 
-void MsUpdateMaterialValues()
+MsResult MsInputSetPushBuffers(MsInputSet* set)
 {
-  for (uint32_t argi = 0; argi < state.materialInfo.inputArgumentCount; argi++)
+  for (uint32_t argi = 0; argi < set->count; argi++)
   {
-    MsUpdateInputArgument(state.materialInfo.pInputArguements + argi);
+    MsInputArgument* argument = &set->pArguments[argi];
+
+    if (argument->type == Ms_Input_Buffer)
+    {
+      MsInputArgumentBuffer* buffer = &argument->data.buffer;
+      MsBufferElement* element = NULL;
+      uint32_t offset = 0, elementSize = 0;
+
+      for (uint32_t i = 0; i < argument->data.buffer.elementCount; i++)
+      {
+        element = &buffer->pElements[i];
+
+        offset = MsBufferOffsetToBaseAlignment(offset, element->type);
+
+        elementSize = MsGetBufferElementSize(element->type);
+        MS_ATTEMPT_OPAL(OpalBufferPushDataSegment(buffer->buffer, buffer->pElements[i].data, elementSize, offset));
+        offset += elementSize;
+      }
+    }
   }
+
+  return Ms_Success;
 }
 
 MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
@@ -219,7 +242,7 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
   uint32_t newElementIndex = buffer->elementCount;
 
   buffer->size = MsBufferOffsetToBaseAlignment(buffer->size, type);
-  buffer->size += MsBufferElementSize(type);
+  buffer->size += MsGetBufferElementSize(type);
 
   buffer->elementCount++;
   buffer->pElements = LapisMemReallocArray(buffer->pElements, MsBufferElement, buffer->elementCount);
@@ -229,7 +252,7 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
   newElement->name = LapisMemAllocArray(char, 128);
   sprintf(newElement->name, "%u:%u %s", argument->id, buffer->elementCount - 1, MsBufferElementTypeNames[type]);
   newElement->type = type;
-  newElement->data = LapisMemAllocZero(MsBufferElementSize(type));
+  newElement->data = LapisMemAllocZero(MsGetBufferElementSize(type));
 
   // Update Opal buffer
   OpalBufferShutdown(&buffer->buffer);
@@ -241,7 +264,7 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
 
   // Update material input set
   uint32_t bufferArgIndex = 0;
-  while (&state.materialInfo.pInputArguements[bufferArgIndex].data.buffer != buffer)
+  while (&state.materialInputSet.pArguments[bufferArgIndex].data.buffer != buffer)
   {
     bufferArgIndex++;
   }
@@ -251,7 +274,7 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
   inputInfo.type = Opal_Input_Type_Uniform_Buffer;
   inputInfo.value.buffer = buffer->buffer;
 
-  MS_ATTEMPT_OPAL(OpalInputSetUpdate(state.materialInfo.inputSet, 1, &inputInfo));
+  MS_ATTEMPT_OPAL(OpalInputSetUpdate(state.materialInputSet.set, 1, &inputInfo));
 
   return Ms_Success;
 }
@@ -263,7 +286,7 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
   uint32_t bufferSize = 0;
   for (uint32_t i = 0; i < info.bufferInfo.elementCount; i++)
   {
-    uint32_t elementSize = MsBufferElementSize(info.bufferInfo.pElementTypes[i]);
+    uint32_t elementSize = MsGetBufferElementSize(info.bufferInfo.pElementTypes[i]);
     bufferSize = MsBufferOffsetToBaseAlignment(bufferSize, pElements[i].type);
     bufferSize += elementSize;
     pElements[i].type = info.bufferInfo.pElementTypes[i];
@@ -332,14 +355,12 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
   return Ms_Success;
 }
 
-MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgumentIndex)
+MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
 {
   MsInputArgument newArgument = {};
 
   newArgument.type = info.type;
-  newArgument.id = state.materialInfo.inputArgumentNextId++;
-  *outArgumentIndex = state.materialInfo.inputArgumentCount;
-  state.materialInfo.inputArgumentCount++;
+  newArgument.id = set->nextId++;
   newArgument.name = LapisMemAllocArray(char, 128);
   sprintf(newArgument.name, "Input argument %u", newArgument.id);
 
@@ -352,32 +373,11 @@ MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgume
     MS_ATTEMPT(InitImageArgument(&newArgument, info));
   }
 
-  state.materialInfo.pInputArguements = (MsInputArgument*)LapisMemRealloc(state.materialInfo.pInputArguements, sizeof(MsInputArgument) * state.materialInfo.inputArgumentCount);
-  state.materialInfo.pInputArguements[state.materialInfo.inputArgumentCount - 1] = newArgument;
-  //LapisMemCopy(&newArgument, state.materialInfo.pInputArguements + *outArgumentIndex, sizeof(MsInputArgument));
+  set->count++;
+  set->pArguments = LapisMemReallocArray(set->pArguments, MsInputArgument, set->count);
+  set->pArguments[set->count - 1] = newArgument;
 
-  return Ms_Success;
-}
-
-MsResult MsUpdateInputArgument(MsInputArgument* argument)
-{
-  if (argument->type == Ms_Input_Buffer)
-  {
-    MsInputArgumentBuffer* buffer = &argument->data.buffer;
-    MsBufferElement* element = NULL;
-    uint32_t offset = 0, elementSize = 0;
-
-    for (uint32_t i = 0; i < argument->data.buffer.elementCount; i++)
-    {
-      element = &buffer->pElements[i];
-
-      offset = MsBufferOffsetToBaseAlignment(offset, element->type);
-
-      elementSize = MsBufferElementSize(element->type);
-      MS_ATTEMPT_OPAL(OpalBufferPushDataSegment(buffer->buffer, buffer->pElements[i].data, elementSize, offset));
-      offset += elementSize;
-    }
-  }
+  MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(set));
 
   return Ms_Success;
 }

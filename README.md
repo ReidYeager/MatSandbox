@@ -13,4 +13,5 @@ Runs shader compilation and allows for the customization of the input set at run
 
 ## Intallation
 Requires the VulkanSDK to be installed for shader compilation
+
 `git clone https://github.com/ReidYeager/MatSandbox --recursive`

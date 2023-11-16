@@ -51,6 +51,30 @@ void HandleInput()
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_5)) state.meshIndex = 4;
 }
 
+MsResult Render()
+{
+  if (LapisWindowGetMinimized(state.window.lapis) || !LapisWindowGetVisible(state.window.lapis))
+    return Ms_Success;
+
+  MS_ATTEMPT_OPAL(OpalRenderBegin(state.window.opal));
+
+  // Scene
+  OpalRenderBeginRenderpass(state.sceneRenderpass, state.sceneFramebuffer);
+  OpalRenderBindMaterial(state.material);
+  OpalRenderBindInputSet(state.globalInputSet.set, 0);
+  OpalRenderBindInputSet(state.materialInputSet.set, 1);
+  OpalRenderMesh(state.meshes[state.meshIndex]);
+  OpalRenderEndRenderpass(state.sceneRenderpass);
+
+  // Ui
+  OpalRenderBeginRenderpass(state.uiRenderpass, state.uiFramebuffer);
+  MS_ATTEMPT(RenderUi());
+  OpalRenderEndRenderpass(state.uiRenderpass);
+  MS_ATTEMPT_OPAL(OpalRenderEnd());
+
+  return Ms_Success;
+}
+
 MsResult UpdateSceneRenderComponents()
 {
   if (state.sceneGuiExtentsPrevFrame.x <= 0 || state.sceneGuiExtentsPrevFrame.y <= 0)
@@ -69,7 +93,7 @@ MsResult UpdateSceneRenderComponents()
   MS_ATTEMPT_OPAL(OpalImageResize(state.depthImage, newExtents));
   MS_ATTEMPT_OPAL(OpalFramebufferReinit(state.sceneFramebuffer));
 
-  state.globalInputValues.camProj = ProjectionPerspectiveExtended(
+  *state.globalInputValues.camProj = ProjectionPerspectiveExtended(
     (float)newExtents.width / (float)newExtents.height,
     1.0f,    // 1:1 guaranteed ratio
     90.0f,   // VFov
@@ -86,31 +110,6 @@ MsResult UpdateSceneRenderComponents()
   return Ms_Success;
 }
 
-MsResult Render()
-{
-  if (LapisWindowGetMinimized(state.window.lapis) || !LapisWindowGetVisible(state.window.lapis))
-    return Ms_Success;
-
-  MS_ATTEMPT_OPAL(OpalRenderBegin(state.window.opal));
-
-  // Scene
-  OpalRenderBeginRenderpass(state.sceneRenderpass, state.sceneFramebuffer);
-  OpalRenderBindMaterial(state.material);
-  MsUpdateMaterialValues();
-  OpalRenderBindInputSet(state.globalInputSet, 0);
-  OpalRenderBindInputSet(state.materialInfo.inputSet, 1);
-  OpalRenderMesh(state.meshes[state.meshIndex]);
-  OpalRenderEndRenderpass(state.sceneRenderpass);
-
-  // Ui
-  OpalRenderBeginRenderpass(state.uiRenderpass, state.uiFramebuffer);
-  MS_ATTEMPT(RenderUi());
-  OpalRenderEndRenderpass(state.uiRenderpass);
-  MS_ATTEMPT_OPAL(OpalRenderEnd());
-
-  return Ms_Success;
-}
-
 MsResult MsUpdate()
 {
   while (!LapisWindowGetShouldClose(state.window.lapis))
@@ -120,7 +119,8 @@ MsResult MsUpdate()
     HandleInput();
 
     MS_ATTEMPT(UpdateSceneRenderComponents());
-    MS_ATTEMPT_OPAL(OpalBufferPushData(state.globalInputBuffer, &state.globalInputValues));
+    MS_ATTEMPT(MsInputSetPushBuffers(&state.globalInputSet));
+    MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
     MS_ATTEMPT(Render());
   }
 

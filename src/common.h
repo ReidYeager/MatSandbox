@@ -27,18 +27,22 @@ MsResult UpdateCamera();
 
 MsResult RenderUi();
 
-const char* GetShaderTypeExtension(OpalShaderType type);
+MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info);
+MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set);
+MsResult MsInputSetPushBuffers(MsInputSet* set);
+MsResult MsUpdateInputArgument(MsInputArgument* argument);
+
+MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type);
+
+const char* MsGetShaderTypeExtension(OpalShaderType type);
 MsResult MsCompileShader(OpalShaderType type, const char* source);
 MsResult MsUpdateShader(OpalShaderType type);
-void MsUpdateMaterialValues();
-MsResult MsUpdateMaterialInputLayoutAndSet();
 MsResult MsUpdateMaterial();
-uint32_t MsBufferElementSize(MsBufferElementType element);
-MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type);
+
+uint32_t MsGetBufferElementSize(MsBufferElementType element);
+uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType element); 
+
 MsResult Render();
-MsResult MsCreateInputArgument(MsInputArgumentInitInfo info, uint32_t* outArgumentIndex);
-MsResult MsUpdateInputArgument(MsInputArgument* argument);
-uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType element);
 
 MsResult LoadMesh(const char* path, OpalMesh* outMesh);
 

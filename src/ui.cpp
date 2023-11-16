@@ -1,12 +1,135 @@
 
 #include "src/common.h"
 
-MsResult RenderImguiUi();
+MsResult ShowPreview();
+MsResult ShowCode();
+MsResult ShowArguments();
 
 MsResult RenderUi()
 {
-  return RenderImguiUi();
+  ImGui_ImplVulkan_NewFrame();
+  ImGui_ImplWin32_NewFrame();
+  ImGui::NewFrame();
+
+  ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+  MS_ATTEMPT(ShowPreview());
+  MS_ATTEMPT(ShowCode());
+  MS_ATTEMPT(ShowArguments());
+
+  ImGui::EndFrame();
+
+  ImGuiIO& io = ImGui::GetIO();
+  if (!state.inputState.previewFocused && state.inputState.previewHovered && io.MouseClicked[1])
+  {
+    ImGui::SetWindowFocus("Preview");
+  }
+
+  ImGui::Render();
+  ImDrawData* drawData = ImGui::GetDrawData();
+  ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
+
+  return Ms_Success;
 }
+
+// =====
+// Preview
+// =====
+
+MsResult ShowPreview()
+{
+  ImVec2 sceneExtents = { (float)state.sceneImage->extents.width, (float)state.sceneImage->extents.height };
+  ImGui::Begin("Preview");
+  ImGui::Image(state.uiSceneImageInputSet->vk.descriptorSet, sceneExtents);
+  ImVec2 min = ImGui::GetWindowContentRegionMin();
+  ImVec2 max = ImGui::GetWindowContentRegionMax();
+  state.sceneGuiExtentsPrevFrame = { (int32_t)(max.x - min.x), (int32_t)(max.y - min.y) };
+
+  state.inputState.previewFocused = ImGui::IsWindowFocused();
+  state.inputState.previewHovered = ImGui::IsWindowHovered();
+
+  ImGui::End();
+
+  return Ms_Success;
+}
+
+// =====
+// Code
+// =====
+
+MsResult ShowCodeBlock(const char* title, OpalShaderType type, char* codeBuffer);
+
+MsResult ShowCode()
+{
+  static char vertCodeBuffer[MS_CODE_MAX_LENGTH] = MATSANDBOX_VERT_DEFAULT_SOURCE;
+  static char fragCodeBuffer[MS_CODE_MAX_LENGTH] = MATSANDBOX_FRAG_DEFAULT_SOURCE;
+
+  ImGui::Begin("Code");
+
+  MS_ATTEMPT(ShowCodeBlock("Vertex", Opal_Shader_Vertex, vertCodeBuffer));
+  ImGui::Spacing();
+  MS_ATTEMPT(ShowCodeBlock("Fragment", Opal_Shader_Fragment, fragCodeBuffer));
+
+  ImGui::End();
+
+  return Ms_Success;
+}
+
+MsResult ShowCodeBlock(const char* title, OpalShaderType type, char* codeBuffer)
+{
+  ImGui::PushID(title);
+
+  if (ImGui::CollapsingHeader(title, ImGuiTreeNodeFlags_DefaultOpen))
+  {
+    if (ImGui::Button("Compile"))
+    {
+      if (MsCompileShader(type, codeBuffer) == Ms_Success)
+      {
+        MS_ATTEMPT(MsUpdateShader(type));
+        MS_ATTEMPT(MsUpdateMaterial());
+        MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+      }
+    }
+
+    ImGui::InputTextMultiline(
+      "##source",
+      codeBuffer,
+      MS_CODE_MAX_LENGTH,
+      { -FLT_MIN, ImGui::GetTextLineHeight() * 20 },
+      ImGuiInputTextFlags_AllowTabInput);
+  }
+
+  ImGui::PopID();
+  return Ms_Success;
+}
+
+// =====
+// Arguments
+// =====
+
+void RenderGlobalArguments();
+void RenderAddArgument();
+void RenderCustomArguments();
+
+MsResult ShowArguments()
+{
+  ImGui::Begin("Arguments");
+
+  if (ImGui::CollapsingHeader("Global", ImGuiTreeNodeFlags_DefaultOpen))
+  {
+    RenderGlobalArguments();
+  }
+
+  if (ImGui::CollapsingHeader("Custom", ImGuiTreeNodeFlags_DefaultOpen))
+  {
+    RenderAddArgument();
+    RenderCustomArguments();
+  }
+
+  ImGui::End();
+  return Ms_Success;
+}
+
 
 void RenderImguiMatrix(const char* title, Mat4* data)
 {
@@ -49,66 +172,14 @@ void RenderImguiMatrix(const char* title, Mat4* data)
   ImGui::Columns(1);
 }
 
-MsResult RenderCode()
-{
-  static const uint32_t codeSize = 2048;
-  static char vertCodeBuffer[codeSize] = MATSANDBOX_VERT_DEFAULT_SOURCE;
-  static char fragCodeBuffer[codeSize] = MATSANDBOX_FRAG_DEFAULT_SOURCE;
-
-  ImGui::Begin("Code");
-
-  // =====
-  // Vert
-  // =====
-  ImGui::SeparatorText("Vertex shader");
-  if (ImGui::Button("Compile Vert"))
-  {
-    if (MsCompileShader(Opal_Shader_Vertex, vertCodeBuffer) == Ms_Success)
-    {
-      MS_ATTEMPT(MsUpdateShader(Opal_Shader_Vertex));
-      MS_ATTEMPT(MsUpdateMaterial());
-    }
-  }
-  ImGui::InputTextMultiline(
-    "##vertSource",
-    vertCodeBuffer,
-    codeSize,
-    { -FLT_MIN, ImGui::GetTextLineHeight() * 20 },
-    ImGuiInputTextFlags_AllowTabInput);
-
-  // =====
-  // Frag
-  // =====
-  ImGui::Spacing();
-  ImGui::SeparatorText("Fragment shader");
-  if (ImGui::Button("Compile Frag"))
-  {
-    if (MsCompileShader(Opal_Shader_Fragment, fragCodeBuffer) == Ms_Success)
-    {
-      MS_ATTEMPT(MsUpdateShader(Opal_Shader_Fragment));
-      MS_ATTEMPT(MsUpdateMaterial());
-    }
-  }
-  ImGui::InputTextMultiline(
-    "##fragSource",
-    fragCodeBuffer,
-    codeSize,
-    { -FLT_MIN, ImGui::GetTextLineHeight() * 20 },
-    ImGuiInputTextFlags_AllowTabInput);
-
-  ImGui::End();
-
-  return Ms_Success;
-}
-
 void RenderGlobalArguments()
 {
   ImGui::Text("Camera view matrix");
-  RenderImguiMatrix("Cam view matrix", &state.globalInputValues.camView);
+  RenderImguiMatrix("Cam view matrix", state.globalInputValues.camView);
   ImGui::Text("Camera projection matrix");
-  RenderImguiMatrix("Cam proj matrix", &state.globalInputValues.camProj);
-  ImGui::DragFloat3("Camera forward vector", state.globalInputValues.camForward.elements);
-  state.globalInputValues.camForward = Vec3Normalize(state.globalInputValues.camForward);
+  RenderImguiMatrix("Cam proj matrix", state.globalInputValues.camProj);
+  ImGui::DragFloat3("Camera forward vector", state.globalInputValues.camForward->elements);
+  *state.globalInputValues.camForward = Vec3Normalize(*state.globalInputValues.camForward);
 }
 
 void RenderBufferArgumentElements(MsInputArgumentBuffer* buffer)
@@ -268,7 +339,8 @@ void RenderBufferAddElement(uint32_t argIndex)
 
     if (newType != Ms_Buffer_COUNT)
     {
-      MsBufferAddElement(&state.materialInfo.pInputArguements[argIndex], newType);
+      MsBufferAddElement(&state.materialInputSet.pArguments[argIndex], newType);
+      MsInputSetPushBuffers(&state.materialInputSet);
     }
 
     ImGui::EndPopup();
@@ -282,9 +354,9 @@ void RenderCustomArguments()
   MsInputArgument* argument = NULL;
   static char nameBuffer[128];
 
-  for (uint32_t i = 0; i < state.materialInfo.inputArgumentCount; i++)
+  for (uint32_t i = 0; i < state.materialInputSet.count; i++)
   {
-    argument = state.materialInfo.pInputArguements + i;
+    argument = state.materialInputSet.pArguments + i;
     sprintf(nameBuffer, "%u : %s", i, argument->name);
 
     if (argument->type == Ms_Input_Buffer)
@@ -295,7 +367,6 @@ void RenderCustomArguments()
     }
     else
     {
-      // Do image stuff here
       ImGui::Image(argument->data.image.set->vk.descriptorSet, { 64.0f, 64.0f });
       ImGui::SameLine();
       sprintf(nameBuffer, "%u : %s", i, argument->name);
@@ -320,8 +391,7 @@ void RenderAddArgument()
         argumentInfo.type = Ms_Input_Buffer;
         argumentInfo.bufferInfo.elementCount = 1;
         argumentInfo.bufferInfo.pElementTypes = &firstType;
-        uint32_t newArgIndex;
-        MsCreateInputArgument(argumentInfo, &newArgIndex);
+        MsInputSetAddArgument(&state.materialInputSet, argumentInfo);
       }
 
       ImGui::EndMenu();
@@ -354,8 +424,7 @@ void RenderAddArgument()
       MsInputArgumentInitInfo argumentInfo;
       argumentInfo.type = Ms_Input_Image;
       argumentInfo.imageInfo.imagePath = pathBuffer;
-      uint32_t newArgIndex;
-      MsCreateInputArgument(argumentInfo, &newArgIndex);
+      MsInputSetAddArgument(&state.materialInputSet, argumentInfo);
     }
     ImGui::SetItemDefaultFocus();
     ImGui::SameLine();
@@ -367,67 +436,4 @@ void RenderAddArgument()
     ImGui::EndPopup();
   }
 
-}
-
-MsResult RenderArguments()
-{
-  ImGui::Begin("Arguments");
-
-  if (ImGui::CollapsingHeader("Global", ImGuiTreeNodeFlags_DefaultOpen))
-  {
-    RenderGlobalArguments();
-  }
-
-  if (ImGui::CollapsingHeader("Custom", ImGuiTreeNodeFlags_DefaultOpen))
-  {
-    RenderAddArgument();
-    RenderCustomArguments();
-  }
-
-  ImGui::End();
-  return Ms_Success;
-}
-
-MsResult RenderPreview()
-{
-  ImVec2 sceneExtents = { (float)state.sceneImage->extents.width, (float)state.sceneImage->extents.height };
-  ImGui::Begin("Preview");
-  ImGui::Image(state.uiSceneImageInputSet->vk.descriptorSet, sceneExtents);
-  ImVec2 min = ImGui::GetWindowContentRegionMin();
-  ImVec2 max = ImGui::GetWindowContentRegionMax();
-  state.sceneGuiExtentsPrevFrame = { (int32_t)(max.x - min.x), (int32_t)(max.y - min.y) };
-
-  state.inputState.previewFocused = ImGui::IsWindowFocused();
-  state.inputState.previewHovered = ImGui::IsWindowHovered();
-
-  ImGui::End();
-
-  return Ms_Success;
-}
-
-MsResult RenderImguiUi()
-{
-  ImGui_ImplVulkan_NewFrame();
-  ImGui_ImplWin32_NewFrame();
-  ImGui::NewFrame();
-
-  ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-
-  MS_ATTEMPT(RenderCode());
-  MS_ATTEMPT(RenderArguments());
-  MS_ATTEMPT(RenderPreview());
-
-  ImGui::EndFrame();
-
-  ImGuiIO& io = ImGui::GetIO();
-  if (!state.inputState.previewFocused && state.inputState.previewHovered && io.MouseClicked[1])
-  {
-    ImGui::SetWindowFocus("Preview");
-  }
-
-  ImGui::Render();
-  ImDrawData* drawData = ImGui::GetDrawData();
-  ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
-
-  return Ms_Success;
 }

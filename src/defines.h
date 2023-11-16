@@ -22,7 +22,8 @@
 #error "Unsupported platform"
 #endif
 
-#define SHADER_NAME_MAX_LENGTH 64
+#define MS_SHADER_NAME_MAX_LENGTH 64
+#define MS_CODE_MAX_LENGTH 2048
 
 enum MsResult
 {
@@ -239,6 +240,16 @@ struct MsInputArgumentInitInfo
   };
 };
 
+struct MsInputSet
+{
+  uint32_t count;
+  uint32_t nextId = 0;
+  MsInputArgument* pArguments;
+
+  OpalInputLayout layout;
+  OpalInputSet set;
+};
+
 struct MsMaterialInfo
 {
   uint32_t inputArgumentNextId = 0;
@@ -279,17 +290,18 @@ struct MatSandboxState
   uint32_t shaderCount;
   OpalShader* pShaders;
   OpalMaterial material;
-  MsMaterialInfo materialInfo;
+  MsInputSet materialInputSet;
 
-  OpalInputLayout globalInputLayout;
-  OpalInputSet globalInputSet;
-  OpalBuffer globalInputBuffer;
+  MsInputSet globalInputSet;
+  //OpalInputLayout globalInputLayout;
+  //OpalInputSet globalInputSet;
+  //OpalBuffer globalInputBuffer;
 
   struct
   {
-    Mat4 camView = mat4Identity;
-    Mat4 camProj = mat4Identity;
-    Vec3 camForward = { 0.0f, 0.0f, -1.0f, };
+    Mat4* camView;
+    Mat4* camProj;
+    Vec3* camForward;
   } globalInputValues;
 
   struct

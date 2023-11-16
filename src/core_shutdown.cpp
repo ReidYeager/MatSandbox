@@ -3,13 +3,13 @@
 
 void MsShutdown()
 {
-  for (uint32_t i = 0; i < state.materialInfo.inputArgumentCount; i++)
+  for (uint32_t i = 0; i < state.materialInputSet.count; i++)
   {
-    switch (state.materialInfo.pInputArguements[i].type)
+    switch (state.materialInputSet.pArguments[i].type)
     {
     case Ms_Input_Buffer:
     {
-      MsInputArgumentBuffer* buffer = &state.materialInfo.pInputArguements[i].data.buffer;
+      MsInputArgumentBuffer* buffer = &state.materialInputSet.pArguments[i].data.buffer;
       for (uint32_t e = 0; e < buffer->elementCount; e++)
       {
         LapisMemFree(buffer->pElements[e].data);
@@ -22,12 +22,12 @@ void MsShutdown()
     } break;
     case Ms_Input_Image:
     {
-      OpalImageShutdown(&state.materialInfo.pInputArguements[i].data.image.image);
+      OpalImageShutdown(&state.materialInputSet.pArguments[i].data.image.image);
     } break;
     default: break;
     }
   }
-  LapisMemFree(state.materialInfo.pInputArguements);
+  LapisMemFree(state.materialInputSet.pArguments);
 
   OpalImageShutdown(&state.depthImage);
   OpalShaderShutdown(&state.pShaders[0]);
