@@ -28,12 +28,14 @@ MsResult UpdateCamera();
 MsResult RenderUi();
 
 MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info);
+void MsInputSetRemoveArgument(MsInputSet* set, uint32_t);
 MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set);
 MsResult MsInputSetPushBuffers(MsInputSet* set);
 MsResult MsUpdateInputArgument(MsInputArgument* argument);
 MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path);
 
 MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type);
+void MsBufferRemoveElement(MsInputArgumentBuffer* buffer, uint32_t index);
 
 const char* MsGetShaderTypeExtension(OpalShaderType type);
 MsResult MsCompileShader(OpalShaderType type, const char* source);

@@ -2,7 +2,7 @@
 #include "src/common.h"
 
 void ShowInputSetArguments(MsInputSet* set, const char* title);
-void ShowArgumentBuffer(MsInputArgumentBuffer* buffer);
+void ShowArgumentBuffer(MsInputArgumentBuffer* buffer, bool canEditElementOrder);
 void ShowBufferElement(MsBufferElement* element);
 MsBufferElementType ShowBufferAddElementMenu();
 void ShowArgumentImage(MsInputArgumentImage* image);
@@ -112,7 +112,7 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
       {
         ImGui::MenuItem(argument->name, NULL, false, false);
 
-        if (ImGui::BeginMenu("Add Element"))
+        if (set != &state.globalInputSet && ImGui::BeginMenu("Add Element"))
         {
           MsBufferElementType newType = ShowBufferAddElementMenu();
           if (newType != Ms_Buffer_COUNT)
@@ -123,7 +123,7 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
           ImGui::EndMenu();
         }
       }
-      else // if (argument->type == Ms_Input_Image)
+      else if (argument->type == Ms_Input_Image)
       {
         if (ImGui::MenuItem("Re-import"))
         {
@@ -131,9 +131,16 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
         }
       }
 
-      if (ImGui::MenuItem("Close"))
+      if (set != &state.globalInputSet && ImGui::MenuItem("Close"))
       {
-        printf ("Remove argument %d", i);
+        MsInputSetRemoveArgument(set, i);
+
+        ImGui::EndMenuBar();
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+        ImGui::PopID();
+        ImGui::PopID();
+        continue;
       }
       ImGui::EndMenuBar();
     }
@@ -141,7 +148,7 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
     // TODO Show some drag&drop element and handle that
 
     if (argument->type == Ms_Input_Buffer)
-      ShowArgumentBuffer(&argument->data.buffer);
+      ShowArgumentBuffer(&argument->data.buffer, set != &state.globalInputSet);
     else if (argument->type == Ms_Input_Image)
       ShowArgumentImage(&argument->data.image);
 
@@ -155,7 +162,7 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
   ImGui::PopID();
 }
 
-void ShowArgumentBuffer(MsInputArgumentBuffer* buffer)
+void ShowArgumentBuffer(MsInputArgumentBuffer* buffer, bool canEditElementOrder)
 {
   MsBufferElement* element;
   for (uint32_t i = 0; i < buffer->elementCount; i++)
@@ -168,9 +175,16 @@ void ShowArgumentBuffer(MsInputArgumentBuffer* buffer)
     {
       ImGui::MenuItem(buffer->pElements[i].name, NULL, false, false);
 
-      if (ImGui::MenuItem("Close"))
+      if (canEditElementOrder && ImGui::MenuItem("Close"))
       {
-        printf("Remove element %d", i);
+        MsBufferRemoveElement(buffer, i);
+        i--;
+
+        ImGui::EndMenuBar();
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+        ImGui::PopID();
+        continue;
       }
       ImGui::EndMenuBar();
     }

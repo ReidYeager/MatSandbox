@@ -279,6 +279,18 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
   return Ms_Success;
 }
 
+void MsBufferRemoveElement(MsInputArgumentBuffer* buffer, uint32_t index)
+{
+  LapisMemFree(buffer->pElements[index].name);
+  LapisMemFree(buffer->pElements[index].data);
+
+  for (uint32_t i = index; i < buffer->elementCount - 1; i ++)
+  {
+    buffer->pElements[i] = buffer->pElements[i + 1];
+  }
+  buffer->elementCount--;
+}
+
 MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
 {
   MsBufferElement* pElements = LapisMemAllocZeroArray(MsBufferElement, info.bufferInfo.elementCount);
@@ -380,6 +392,36 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
   MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(set));
 
   return Ms_Success;
+}
+
+void MsInputSetRemoveArgument(MsInputSet* set, uint32_t index)
+{
+  MsInputArgument* argument = &set->pArguments[index];
+  LapisMemFree(argument->name);
+  if (argument->type == Ms_Input_Buffer)
+  {
+    OpalBufferShutdown(&argument->data.buffer.buffer);
+    for (uint32_t i = 0; i < argument->data.buffer.elementCount; i++)
+    {
+      LapisMemFree(argument->data.buffer.pElements[i].name);
+      LapisMemFree(argument->data.buffer.pElements[i].data);
+    }
+    LapisMemFree(argument->data.buffer.pElements);
+    argument->data.buffer.elementCount = 0;
+    argument->data.buffer.size = 0;
+  }
+  else
+  {
+    OpalImageShutdown(&argument->data.image.image);
+    OpalInputSetShutdown(&argument->data.image.set);
+  }
+
+  for (uint32_t i = index; i < set->count - 1; i++)
+  {
+    set->pArguments[i] = set->pArguments[i + 1];
+  }
+
+  set->count--;
 }
 
 MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
