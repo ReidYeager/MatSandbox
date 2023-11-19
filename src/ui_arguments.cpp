@@ -9,7 +9,41 @@ void ShowArgumentImage(MsInputArgumentImage* image);
 
 MsResult MsUiShowArgumentsPanel()
 {
+  static char imagePathBuffer[1024] = { 0 };
   ImGui::Begin("Arguments", NULL, ImGuiWindowFlags_MenuBar);
+
+  if (ImGui::BeginPopupModal("Import image##AddImageModal", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+  {
+    ImGui::InputText("Image path", imagePathBuffer, 1024);
+
+    if (ImGui::Button("Done", ImVec2(120, 0)))
+    {
+      if ((state.uiImageImportFlags & 12) == 4)
+      {
+        // Import
+        MsInputArgumentInitInfo argumentInfo;
+        argumentInfo.type = Ms_Input_Image;
+        argumentInfo.imageInfo.imagePath = imagePathBuffer;
+        MsInputSetAddArgument(&state.materialInputSet, argumentInfo);
+      }
+      else if ((state.uiImageImportFlags & 12) == 8)
+      {
+        // Reimport
+        uint32_t argumentIndex = (state.uiImageImportFlags & ~12) >> 4;
+        MsInputSetReloadImage(&state.materialInputSet, argumentIndex, imagePathBuffer);
+      }
+
+      state.uiImageImportFlags = 0;
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel", ImVec2(120, 0)))
+    {
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+  }
 
   if (ImGui::BeginMenuBar())
   {
@@ -31,7 +65,7 @@ MsResult MsUiShowArgumentsPanel()
 
       if (ImGui::MenuItem("Image"))
       {
-        state.uiImageImportOrReload = 1;
+        state.uiImageImportFlags |= 5;
       }
 
       ImGui::EndMenu();
@@ -42,48 +76,12 @@ MsResult MsUiShowArgumentsPanel()
   ShowInputSetArguments(&state.globalInputSet, "Global set");
   ShowInputSetArguments(&state.materialInputSet, "Custom set");
 
-  static char imagePathBuffer[1024] = { 0 };
-  if (state.uiImageImportOrReload)
+  if (state.uiImageImportFlags & 3)
   {
-    printf("Should show modal \n");
     ImGui::OpenPopup("Import image##AddImageModal");
+    state.uiImageImportFlags &= ~3;
     //LapisMemSet(imagePathBuffer, 0, 1024);
-  }
-
-  if (ImGui::BeginPopupModal("Import image##AddImageModal", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-  {
-    ImGui::InputText("Image path", imagePathBuffer, 1024);
-
-    if (ImGui::Button("Done", ImVec2(120, 0)))
-    {
-      state.uiImageImportOrReload |= 4;
-      ImGui::CloseCurrentPopup();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Cancel", ImVec2(120, 0)))
-    {
-      ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndPopup();
-  }
-
-  if (state.uiImageImportOrReload & 4)
-  {
-    if ((state.uiImageImportOrReload & 3) == 1)
-    {
-      // load
-      MsInputArgumentInitInfo argumentInfo;
-      argumentInfo.type = Ms_Input_Image;
-      argumentInfo.imageInfo.imagePath = imagePathBuffer;
-      MsInputSetAddArgument(&state.materialInputSet, argumentInfo);
-    }
-    else if ((state.uiImageImportOrReload & 3) == 2)
-    {
-      // reimport
-    }
-
-    state.uiImageImportOrReload = 0;
+    imagePathBuffer[0] = '\0';
   }
 
   ImGui::End();
@@ -129,7 +127,7 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
       {
         if (ImGui::MenuItem("Re-import"))
         {
-          state.uiImageImportOrReload = 2;
+          state.uiImageImportFlags |= 10 | (i << 4);
         }
       }
 

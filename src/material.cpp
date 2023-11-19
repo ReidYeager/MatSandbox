@@ -361,7 +361,6 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
 
   newArgument.type = info.type;
   newArgument.id = set->nextId++;
-  newArgument.shouldKeep = true;
   newArgument.name = LapisMemAllocArray(char, 128);
   sprintf(newArgument.name, "Input argument %u", newArgument.id);
 
@@ -387,12 +386,40 @@ MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
 {
   MsInputArgumentImage* image = &set->pArguments[imageIndex].data.image;
 
+  int channels;
+  int32_t imageWidth = 0, imageHeight = 0;
+  stbi_uc* imageSource = stbi_load(
+    path,
+    &imageWidth,
+    &imageHeight,
+    &channels,
+    STBI_rgb_alpha);
+
+  if (imageWidth <= 0 || imageWidth <= 0 || imageSource == NULL)
+  {
+    LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"", path);
+    return Ms_Fail;
+  }
+
   OpalImageShutdown(&image->image);
 
-  MsInputArgumentInitInfo newInfo;
-  newInfo.type = Ms_Input_Image;
-  newInfo.imageInfo.imagePath = path;
-  InitImageArgument(&set->pArguments[imageIndex], newInfo);
+  OpalImageInitInfo initInfo;
+  initInfo.extent = { (uint32_t)imageWidth, (uint32_t)imageHeight, 1 };
+  initInfo.sampleType = Opal_Sample_Bilinear;
+  initInfo.usage = Opal_Image_Usage_Uniform;
+  initInfo.format = Opal_Format_RGBA8;
+  MS_ATTEMPT_OPAL(OpalImageInit(&image->image, initInfo));
+  MS_ATTEMPT_OPAL(OpalImageFill(image->image, imageSource));
+
+  stbi_image_free(imageSource);
+
+  OpalMaterialInputValue inImage;
+  inImage.image = image->image;
+
+  OpalInputSetInitInfo setInfo = { 0 };
+  setInfo.layout = state.uiSingleImageInputLayout;
+  setInfo.pInputValues = &inImage;
+  MS_ATTEMPT_OPAL(OpalInputSetInit(&image->set, setInfo));
 
   return Ms_Success;
 }

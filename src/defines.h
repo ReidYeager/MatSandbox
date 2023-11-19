@@ -279,7 +279,7 @@ struct MatSandboxState
   OpalRenderpass sceneRenderpass;
   OpalFramebuffer sceneFramebuffer;
 
-  uint32_t uiImageImportOrReload;
+  uint32_t uiImageImportFlags;
   OpalInputLayout uiSingleImageInputLayout;
   OpalInputSet uiSceneImageInputSet;
   OpalRenderpass uiRenderpass;
