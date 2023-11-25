@@ -33,6 +33,7 @@ add_executable(MatSandbox
 
   src/compilation.cpp
   src/material.cpp
+  src/serialization.cpp
 
   src/mesh.cpp
 

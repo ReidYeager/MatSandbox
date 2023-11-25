@@ -89,30 +89,28 @@ struct MsMeshInfo
   std::vector<uint32_t> indices;
 };
 
-#define MATSANDBOX_VERT_DEFAULT_SOURCE                                    \
-  "#version 460\n"                                                        \
-  "\n"                                                                    \
-  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"           \
-  "{\n"                                                                   \
-  "  mat4 camView;\n"                                                     \
-  "  mat4 camProj;\n"                                                     \
-  "  vec3 cameraForward;\n"                                               \
-  "} global;\n"                                                           \
-  "\n"                                                                    \
-  "layout(location = 0) in vec3 inPosition;\n"                            \
-  "layout(location = 1) in vec3 inNormal;\n"                              \
-  "layout(location = 2) in vec2 inUv;\n"                                  \
-  "\n"                                                                    \
-  "layout(location = 0) out vec3 outNormal;\n"                            \
-  "layout(location = 1) out vec2 outUv;\n"                                \
-  "\n"                                                                    \
-  "void main()\n"                                                         \
-  "{\n"                                                                   \
-  "  vec4 p = global.camProj * global.camView * vec4(inPosition, 1.0);\n" \
-  "  gl_Position = p;\n"                                                  \
-  "\n"                                                                    \
-  "  outNormal = inNormal;\n"                                             \
-  "  outUv = inUv;\n"                                                     \
+#define MATSANDBOX_VERT_DEFAULT_SOURCE                                         \
+  "#version 460\n"                                                             \
+  "\n"                                                                         \
+  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"                \
+  "{\n"                                                                        \
+  "  mat4 camView;\n"                                                          \
+  "  mat4 camProj;\n"                                                          \
+  "  vec3 cameraForward;\n"                                                    \
+  "} global;\n"                                                                \
+  "\n"                                                                         \
+  "layout(location = 0) in vec3 inPosition;\n"                                 \
+  "layout(location = 1) in vec3 inNormal;\n"                                   \
+  "layout(location = 2) in vec2 inUv;\n"                                       \
+  "\n"                                                                         \
+  "layout(location = 0) out vec3 outNormal;\n"                                 \
+  "layout(location = 1) out vec2 outUv;\n"                                     \
+  "\n"                                                                         \
+  "void main()\n"                                                              \
+  "{\n"                                                                        \
+  "  outNormal = inNormal;\n"                                                  \
+  "  outUv = inUv;\n"                                                          \
+  "  gl_Position = global.camProj * global.camView * vec4(inPosition, 1.0);\n" \
   "}\n"
 
 
@@ -260,6 +258,13 @@ struct MsMaterialInfo
   OpalInputSet inputSet;
 };
 
+struct ShaderCodeInfo
+{
+  uint32_t size;
+  uint32_t capacity;
+  char* buffer;
+};
+
 struct MatSandboxState
 {
   MsbWindow window;
@@ -292,6 +297,8 @@ struct MatSandboxState
   OpalShader* pShaders;
   OpalMaterial material;
   MsInputSet materialInputSet;
+
+  ShaderCodeInfo pShaderCodeInfos[2];
 
   MsInputSet globalInputSet;
   //OpalInputLayout globalInputLayout;

@@ -50,4 +50,8 @@ MsResult Render();
 
 MsResult LoadMesh(const char* path, OpalMesh* outMesh);
 
+void MsInputSetShutdown(MsInputSet* set);
+MsResult MsSerializeSave(const char* path);
+MsResult MsSerializeLoad(const char* path);
+
 #endif // !MATSANDBOX_COMMON_H

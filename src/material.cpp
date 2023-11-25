@@ -386,7 +386,10 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
   }
 
   set->count++;
-  set->pArguments = LapisMemReallocArray(set->pArguments, MsInputArgument, set->count);
+  if (set->count > 1)
+    set->pArguments = LapisMemReallocArray(set->pArguments, MsInputArgument, set->count);
+  else
+    set->pArguments = LapisMemAllocArray(MsInputArgument, set->count);
   set->pArguments[set->count - 1] = newArgument;
 
   MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(set));

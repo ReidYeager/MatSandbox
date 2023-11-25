@@ -38,6 +38,18 @@ void WindowResizeCallback(LapisWindow window, uint32_t width, uint32_t height)
 
 MsResult MsInit()
 {
+  ShaderCodeInfo* ci = &state.pShaderCodeInfos[0];
+  ci->capacity = sizeof(MATSANDBOX_VERT_DEFAULT_SOURCE);
+  ci->size = ci->capacity;
+  ci->buffer = LapisMemAllocArray(char, ci->size);
+  LapisMemCopy((void*)MATSANDBOX_VERT_DEFAULT_SOURCE, (void*)ci->buffer, (uint64_t)ci->size);
+
+  ci = &state.pShaderCodeInfos[1];
+  ci->capacity = sizeof(MATSANDBOX_FRAG_DEFAULT_SOURCE);
+  ci->size = ci->capacity;
+  ci->buffer = LapisMemAllocArray(char, ci->size);
+  LapisMemCopy((void*)MATSANDBOX_FRAG_DEFAULT_SOURCE, (void*)ci->buffer, (uint64_t)ci->size);
+
   MS_ATTEMPT(InitWindow());
   MS_ATTEMPT(InitSceneRenderResources());
   MS_ATTEMPT(InitUiRenderResources());
