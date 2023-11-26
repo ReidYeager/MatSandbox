@@ -69,6 +69,7 @@ MsResult MsUpdateShader(ShaderCodeInfo* codeInfo)
   sprintf_s(shaderNameBuffer, MS_SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", MsGetShaderTypeExtension(codeInfo->type));
 
   OpalShader* shader = &codeInfo->shader;
+
   OpalShaderInitInfo initInfo = {};
   initInfo.type = codeInfo->type;
   initInfo.size = LapisFileRead(shaderNameBuffer, &initInfo.pSource);
@@ -179,6 +180,15 @@ MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set)
   LapisMemFree(inputInfo);
 
   return Ms_Success;
+}
+
+void MsMaterialShutdown()
+{
+  for (uint32_t i = 0; i < state.material->shaderCount; i++)
+  {
+    OpalShaderShutdown(&state.material->pShaders[i]);
+    OpalShaderShutdown(&state.pShaderCodeInfos[i].shader);
+  }
 }
 
 MsResult MsUpdateMaterial()

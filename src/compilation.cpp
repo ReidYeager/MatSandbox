@@ -1,8 +1,6 @@
 
 #include "src/common.h"
 
-FILE* newShaderHlslSource;
-
 uint32_t ParseCompilationErrors(FILE* pipe)
 {
   uint32_t errorCount = 0;
@@ -31,9 +29,10 @@ MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source)
   sprintf_s(command, 512, VULKAN_COMPILER " %s -o NewShaderCompiled.%s.spv 2>&1", newFileName, MsGetShaderTypeExtension(codeInfo->type));
 
   // Save file
-  fopen_s(&newShaderHlslSource, newFileName, "w");
-  fwrite(source, sizeof(char), size, newShaderHlslSource);
-  fclose(newShaderHlslSource);
+  FILE* newShaderSource;
+  fopen_s(&newShaderSource, newFileName, "w");
+  fwrite(source, sizeof(char), size, newShaderSource);
+  fclose(newShaderSource);
 
   // Execute compilation command
   FILE* fp = _popen(command, "r");

@@ -148,7 +148,11 @@ int TextBoxResizeCallback(ImGuiInputTextCallbackData* callbackData)
   {
     if (codeInfo->size >= codeInfo->capacity)
     {
-      codeInfo->capacity = codeInfo->capacity * 1.2;
+      while (codeInfo->size >= codeInfo->capacity)
+      {
+        codeInfo->capacity = codeInfo->capacity * 1.2;
+      }
+
       codeInfo->buffer = (char*)LapisMemRealloc((void*)(codeInfo->buffer), (uint64_t)codeInfo->capacity);
     }
 
@@ -183,7 +187,6 @@ MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
     }
 
     ImGui::SameLine();
-    ImGui::Text("%u/%u", codeInfo->size, codeInfo->capacity);
 
     ImGui::InputTextMultiline(
       "##source",
