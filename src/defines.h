@@ -234,6 +234,8 @@ struct MsInputArgumentInitInfo
     struct
     {
       char* imagePath;
+      void* imageData;
+      OpalExtent extents;
     } imageInfo;
   };
 };

@@ -9,7 +9,7 @@ void ShowArgumentImage(MsInputArgumentImage* image);
 
 MsResult MsUiShowArgumentsPanel()
 {
-  static char imagePathBuffer[1024] = { 0 };
+  static char imagePathBuffer[1024];
   ImGui::Begin("Arguments", NULL, ImGuiWindowFlags_MenuBar);
 
   if (ImGui::BeginPopupModal("Import image##AddImageModal", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -80,8 +80,7 @@ MsResult MsUiShowArgumentsPanel()
   {
     ImGui::OpenPopup("Import image##AddImageModal");
     state.uiImageImportFlags &= ~3;
-    //LapisMemSet(imagePathBuffer, 0, 1024);
-    imagePathBuffer[0] = '\0';
+    //imagePathBuffer[0] = '\0';
   }
 
   ImGui::End();

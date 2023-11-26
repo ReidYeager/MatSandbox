@@ -22,7 +22,23 @@ void WriteBuffer(FILE* outFile, MsInputArgumentBuffer* buffer)
 
 void WriteImage(FILE* outFile, MsInputArgumentImage* image)
 {
-  printf("Can not currently serialize images\n");
+  void* imageData;
+  uint32_t imageSize = OpalImageDumpData(image->image, &imageData);
+
+  uint32_t pixelCount = image->image->extents.width * image->image->extents.height * image->image->extents.depth;
+  fwrite(&image->image->extents, sizeof(OpalExtent), 1, outFile);
+  fwrite(&image->image->format, sizeof(OpalFormat), 1, outFile);
+
+  if (imageSize == 0 || pixelCount == 0)
+  {
+    if (imageData)
+      LapisMemFree(imageData);
+    return;
+  }
+
+  fwrite(imageData, OpalFormatToSize(image->image->format), pixelCount, outFile);
+
+  LapisMemFree(imageData);
 }
 
 void WriteInputSet(FILE* outFile, MsInputSet* set)
@@ -43,11 +59,12 @@ void WriteInputSet(FILE* outFile, MsInputSet* set)
 
 MsResult MsSerializeSave(const char* path)
 {
-  FILE* outFile = fopen(path, "w");
+  FILE* outFile = fopen(path, "wb");
 
-  WriteInputSet(outFile, &state.globalInputSet);
+  WriteInputSet(outFile, &state.materialInputSet);
 
   fclose(outFile);
+
   return Ms_Success;
 }
 
@@ -75,7 +92,23 @@ void ReadBuffer(FILE* inFile, MsInputSet* set)
 
 void ReadImage(FILE* inFile, MsInputSet* set)
 {
-  printf("Can not currently serialize images\n");
+  OpalExtent extents;
+  OpalFormat format;
+
+  fread(&extents, sizeof(OpalExtent), 1, inFile);
+  fread(&format, sizeof(OpalFormat), 1, inFile);
+
+  uint32_t pixelCount = extents.width * extents.height * extents.depth;
+  uint32_t imageSize = pixelCount * OpalFormatToSize(format);
+  void* imageData = LapisMemAlloc(imageSize);
+  fread(imageData, OpalFormatToSize(format), pixelCount, inFile);
+
+  MsInputArgumentInitInfo info;
+  info.type = Ms_Input_Image;
+  info.imageInfo.imagePath = NULL;
+  info.imageInfo.extents = extents;
+  info.imageInfo.imageData = imageData;
+  MsInputSetAddArgument(set, info);
 }
 
 void ReadInputSet(FILE* inFile, MsInputSet* set)
@@ -98,7 +131,7 @@ void ReadInputSet(FILE* inFile, MsInputSet* set)
 
 MsResult MsSerializeLoad(const char* path)
 {
-  FILE* inFile = fopen(path, "r");
+  FILE* inFile = fopen(path, "rb");
 
   MsInputSetShutdown(&state.materialInputSet);
   ReadInputSet(inFile, &state.materialInputSet);

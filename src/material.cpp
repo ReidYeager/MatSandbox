@@ -327,34 +327,48 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
   return Ms_Success;
 }
 
+MsResult ImageArgumentLoadFromFile(const char* path, void** imageData, OpalExtent* extents)
+{
+  int channels;
+  int32_t imageWidth = 0, imageHeight = 0;
+  stbi_uc* imageSource = stbi_load(path, &imageWidth, &imageHeight, &channels, STBI_rgb_alpha);
+
+  if (imageWidth <= 0 || imageWidth <= 0 || imageSource == NULL)
+  {
+    LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"", path);
+    return Ms_Fail;
+  }
+
+  *imageData = imageSource;
+  *extents = { (uint32_t)imageWidth, (uint32_t)imageHeight, 1 };
+
+  return Ms_Success;
+}
+
 MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
 {
   MsInputArgumentImage* image = &argument->data.image;
 
-  int channels;
-  int32_t imageWidth = 0, imageHeight = 0;
-  stbi_uc* imageSource = stbi_load(
-  info.imageInfo.imagePath,
-  &imageWidth,
-  &imageHeight,
-  &channels,
-  STBI_rgb_alpha);
+  void* imageData = info.imageInfo.imageData;
+  OpalExtent extent = info.imageInfo.extents;
 
-  if (imageWidth <= 0 || imageWidth <= 0 || imageSource == NULL)
+  if (info.imageInfo.imagePath != NULL)
   {
-    LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"", info.imageInfo.imagePath);
-    return Ms_Fail;
+    MS_ATTEMPT(ImageArgumentLoadFromFile(info.imageInfo.imagePath, &imageData, &extent));
   }
 
   OpalImageInitInfo initInfo;
-  initInfo.extent = { (uint32_t)imageWidth, (uint32_t)imageHeight, 1 };
+  initInfo.extent = extent;
   initInfo.sampleType = Opal_Sample_Bilinear;
   initInfo.usage = Opal_Image_Usage_Uniform;
   initInfo.format = Opal_Format_RGBA8;
   MS_ATTEMPT_OPAL(OpalImageInit(&image->image, initInfo));
-  MS_ATTEMPT_OPAL(OpalImageFill(image->image, imageSource));
+  MS_ATTEMPT_OPAL(OpalImageFill(image->image, imageData));
 
-  stbi_image_free(imageSource);
+  if (info.imageInfo.imagePath != NULL)
+  {
+    stbi_image_free(imageData);
+  }
 
   OpalMaterialInputValue inImage;
   inImage.image = image->image;

@@ -32,7 +32,6 @@ MsResult RenderUi()
   MS_ATTEMPT(ShowCode());
   MS_ATTEMPT(MsUiShowArgumentsPanel());
 
-  ImGui::ShowDemoWindow();
 
   ImGui::EndFrame();
 
