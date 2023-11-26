@@ -68,10 +68,24 @@ void WriteInputSet(FILE* outFile, MsInputSet* set, bool embedImages)
   }
 }
 
+void WriteShaders(FILE* outFile)
+{
+  fwrite(&state.shaderCount, sizeof(uint32_t), 1, outFile);
+
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    ShaderCodeInfo* shader = &state.pShaderCodeInfos[i];
+    fwrite(&shader->type, sizeof(OpalShaderType), 1, outFile);
+    fwrite(&shader->size, sizeof(uint32_t), 1, outFile);
+    fwrite(shader->buffer, sizeof(char), shader->size, outFile);
+  }
+}
+
 MsResult MsSerializeSave(const char* path, bool embedImages)
 {
   FILE* outFile = fopen(path, "wb");
 
+  WriteShaders(outFile);
   WriteInputSet(outFile, &state.materialInputSet, embedImages);
 
   fclose(outFile);
@@ -163,13 +177,51 @@ void ReadInputSet(FILE* inFile, MsInputSet* set)
   }
 }
 
+void ReadShaders(FILE* inFile)
+{
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    LapisMemFree(state.pShaderCodeInfos[i].buffer);
+  }
+  LapisMemFree(state.pShaderCodeInfos);
+
+  fread(&state.shaderCount, sizeof(uint32_t), 1, inFile);
+  state.pShaderCodeInfos = LapisMemAllocZeroArray(ShaderCodeInfo, state.shaderCount);
+
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    ShaderCodeInfo* shader = &state.pShaderCodeInfos[i];
+    fread(&shader->type, sizeof(OpalShaderType), 1, inFile);
+    fread(&shader->size, sizeof(uint32_t), 1, inFile);
+    shader->capacity = shader->size;
+    shader->buffer = LapisMemAllocArray(char, shader->size + 1);
+    shader->buffer[shader->size] = 0;
+    fread(shader->buffer, sizeof(char), shader->size, inFile);
+  }
+}
+
 MsResult MsSerializeLoad(const char* path)
 {
+  OpalWaitIdle();
+
   FILE* inFile = fopen(path, "rb");
 
+  ReadShaders(inFile);
   MsInputSetShutdown(&state.materialInputSet);
   ReadInputSet(inFile, &state.materialInputSet);
 
   fclose(inFile);
+
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    if (MsCompileShader(&state.pShaderCodeInfos[i], state.pShaderCodeInfos[i].buffer) == Ms_Success)
+    {
+      MS_ATTEMPT(MsUpdateShader(&state.pShaderCodeInfos[i]));
+    }
+  }
+
+  MS_ATTEMPT(MsUpdateMaterial());
+  MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+
   return Ms_Success;
 }

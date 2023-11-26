@@ -118,15 +118,19 @@ MsResult ShowPreview()
 // Code
 // =====
 
-MsResult ShowCodeBlock(const char* title, OpalShaderType type);
+MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo);
 
 MsResult ShowCode()
 {
   ImGui::Begin("Code");
 
-  MS_ATTEMPT(ShowCodeBlock("Vertex", Opal_Shader_Vertex));
-  ImGui::Spacing();
-  MS_ATTEMPT(ShowCodeBlock("Fragment", Opal_Shader_Fragment));
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    if (i > 0)
+      ImGui::Spacing();
+
+    MS_ATTEMPT(ShowCodeBlock(&state.pShaderCodeInfos[i]));
+  }
 
   ImGui::End();
 
@@ -153,19 +157,26 @@ int TextBoxResizeCallback(ImGuiInputTextCallbackData* callbackData)
   return 0;
 }
 
-MsResult ShowCodeBlock(const char* title, OpalShaderType type)
+static const char* shaderTypeNames[2] = {
+  "Vertex",
+  "Fragment"
+};
+
+MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
 {
+  const char* title = shaderTypeNames[codeInfo->type];
+
   ImGui::PushID(title);
 
   if (ImGui::CollapsingHeader(title, ImGuiTreeNodeFlags_DefaultOpen))
   {
-    ShaderCodeInfo* codeInfo = &state.pShaderCodeInfos[type];
-
     if (ImGui::Button("Compile"))
     {
-      if (MsCompileShader(type, codeInfo->buffer) == Ms_Success)
+      OpalWaitIdle();
+
+      if (MsCompileShader(codeInfo, codeInfo->buffer) == Ms_Success)
       {
-        MS_ATTEMPT(MsUpdateShader(type));
+        MS_ATTEMPT(MsUpdateShader(codeInfo));
         MS_ATTEMPT(MsUpdateMaterial());
         MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
       }
@@ -177,11 +188,11 @@ MsResult ShowCodeBlock(const char* title, OpalShaderType type)
     ImGui::InputTextMultiline(
       "##source",
       codeInfo->buffer,
-      codeInfo->size,
+      codeInfo->size + 1,
       { -FLT_MIN, ImGui::GetTextLineHeight() * 20 },
       ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize,
       TextBoxResizeCallback,
-      &type);
+      &codeInfo->type);
   }
 
   ImGui::PopID();

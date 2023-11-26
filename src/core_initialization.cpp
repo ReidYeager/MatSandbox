@@ -38,13 +38,18 @@ void WindowResizeCallback(LapisWindow window, uint32_t width, uint32_t height)
 
 MsResult MsInit()
 {
+  state.shaderCount = 2;
+  state.pShaderCodeInfos = LapisMemAllocZeroArray(ShaderCodeInfo, 2);
+
   ShaderCodeInfo* ci = &state.pShaderCodeInfos[0];
+  ci->type = Opal_Shader_Vertex;
   ci->capacity = sizeof(MATSANDBOX_VERT_DEFAULT_SOURCE);
   ci->size = ci->capacity;
   ci->buffer = LapisMemAllocArray(char, ci->size);
   LapisMemCopy((void*)MATSANDBOX_VERT_DEFAULT_SOURCE, (void*)ci->buffer, (uint64_t)ci->size);
 
   ci = &state.pShaderCodeInfos[1];
+  ci->type = Opal_Shader_Fragment;
   ci->capacity = sizeof(MATSANDBOX_FRAG_DEFAULT_SOURCE);
   ci->size = ci->capacity;
   ci->buffer = LapisMemAllocArray(char, ci->size);
@@ -237,18 +242,22 @@ MsResult InitGlobalSet()
 
 MsResult InitMaterial()
 {
-  state.shaderCount = 2;
-  state.pShaders = LapisMemAllocZeroArray(OpalShader, state.shaderCount);
-  MsCompileShader(Opal_Shader_Vertex, MATSANDBOX_VERT_DEFAULT_SOURCE);
-  MsCompileShader(Opal_Shader_Fragment, MATSANDBOX_FRAG_DEFAULT_SOURCE);
-  MsUpdateShader(Opal_Shader_Vertex);
-  MsUpdateShader(Opal_Shader_Fragment);
+  MS_ATTEMPT(MsCompileShader(&state.pShaderCodeInfos[0], MATSANDBOX_VERT_DEFAULT_SOURCE));
+  MS_ATTEMPT(MsCompileShader(&state.pShaderCodeInfos[1], MATSANDBOX_FRAG_DEFAULT_SOURCE));
+  MS_ATTEMPT(MsUpdateShader(&state.pShaderCodeInfos[0]));
+  MS_ATTEMPT(MsUpdateShader(&state.pShaderCodeInfos[1]));
 
   MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.materialInputSet));
 
+  OpalShader* pShaders = LapisMemAllocArray(OpalShader, state.shaderCount);
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    pShaders[i] = state.pShaderCodeInfos[i].shader;
+  }
+
   OpalMaterialInitInfo matInfo = { 0 };
   matInfo.shaderCount = state.shaderCount;
-  matInfo.pShaders = state.pShaders;
+  matInfo.pShaders = pShaders;
   matInfo.inputLayoutCount = 2;
   OpalInputLayout layouts[2] = { state.globalInputSet.layout, state.materialInputSet.layout };
   matInfo.pInputLayouts = layouts;
@@ -256,6 +265,8 @@ MsResult InitMaterial()
   matInfo.renderpass = state.sceneRenderpass;
   matInfo.subpassIndex = 0;
   MS_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
+
+  LapisMemFree(pShaders);
 
   return Ms_Success;
 }

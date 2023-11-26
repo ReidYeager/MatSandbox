@@ -19,16 +19,16 @@ uint32_t ParseCompilationErrors(FILE* pipe)
   return errorCount;
 }
 
-MsResult MsCompileShader(OpalShaderType type, const char* source)
+MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source)
 {
-  bool isFragment = type == Opal_Shader_Fragment;
+  bool isFragment = codeInfo->type == Opal_Shader_Fragment;
   uint32_t size = strlen(source);
 
   char newFileName[MS_SHADER_NAME_MAX_LENGTH];
   char command[512];
 
   sprintf_s(newFileName, MS_SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", isFragment ? "frag" : "vert");
-  sprintf_s(command, 512, VULKAN_COMPILER " %s -o NewShaderCompiled.%s.spv 2>&1", newFileName, MsGetShaderTypeExtension(type));
+  sprintf_s(command, 512, VULKAN_COMPILER " %s -o NewShaderCompiled.%s.spv 2>&1", newFileName, MsGetShaderTypeExtension(codeInfo->type));
 
   // Save file
   fopen_s(&newShaderHlslSource, newFileName, "w");

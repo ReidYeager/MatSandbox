@@ -63,16 +63,14 @@ const char* MsGetShaderTypeExtension(OpalShaderType type)
   return shaderTypeExtension;
 }
 
-MsResult MsUpdateShader(OpalShaderType type)
+MsResult MsUpdateShader(ShaderCodeInfo* codeInfo)
 {
-  bool isFragment = type == Opal_Shader_Fragment;
-
   char shaderNameBuffer[MS_SHADER_NAME_MAX_LENGTH];
-  sprintf_s(shaderNameBuffer, MS_SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", MsGetShaderTypeExtension(type));
+  sprintf_s(shaderNameBuffer, MS_SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", MsGetShaderTypeExtension(codeInfo->type));
 
-  OpalShader* shader = &state.pShaders[isFragment];
+  OpalShader* shader = &codeInfo->shader;
   OpalShaderInitInfo initInfo = {};
-  initInfo.type = type;
+  initInfo.type = codeInfo->type;
   initInfo.size = LapisFileRead(shaderNameBuffer, &initInfo.pSource);
   if (OpalShaderInit(shader, initInfo) != Opal_Success)
   {
@@ -183,18 +181,19 @@ MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set)
   return Ms_Success;
 }
 
-uint32_t tmp = 0;
-
 MsResult MsUpdateMaterial()
 {
   MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.materialInputSet));
 
-  printf("%u\n", tmp);
+  OpalShader* pShaders = LapisMemAllocArray(OpalShader, state.shaderCount);
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    pShaders[i] = state.pShaderCodeInfos[i].shader;
+  }
 
-  //MS_ATTEMPT_OPAL(OpalMaterialReinit(state.material));
   OpalMaterialInitInfo matInfo = { 0 };
   matInfo.shaderCount = state.shaderCount;
-  matInfo.pShaders = state.pShaders;
+  matInfo.pShaders = pShaders;
   matInfo.inputLayoutCount = 2;
   OpalInputLayout layouts[2] = { state.globalInputSet.layout, state.materialInputSet.layout };
   matInfo.pInputLayouts = layouts;
@@ -202,6 +201,8 @@ MsResult MsUpdateMaterial()
   matInfo.renderpass = state.sceneRenderpass;
   matInfo.subpassIndex = 0;
   MS_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
+
+  LapisMemFree(pShaders);
 
   return Ms_Success;
 }
@@ -384,7 +385,6 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
     image->sourcePath = LapisMemAllocArray(char, pathLength + 1);
     image->sourcePath[pathLength] = 0;
     LapisMemCopy(info.imageInfo.imagePath, image->sourcePath, pathLength);
-    printf(">> \"%s\" --> \"%s\"\n", info.imageInfo.imagePath, image->sourcePath);
   }
 
   return Ms_Success;

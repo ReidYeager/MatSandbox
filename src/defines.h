@@ -263,14 +263,17 @@ struct MsMaterialInfo
 
 struct ShaderCodeInfo
 {
+  OpalShaderType type;
   uint32_t size;
   uint32_t capacity;
   char* buffer;
+  OpalShader shader;
 };
 
 struct MatSandboxState
 {
   MsbWindow window;
+  char serialLoadPath[1024];
 
   struct
   {
@@ -282,7 +285,6 @@ struct MatSandboxState
   OpalImage sceneImage;
   OpalImage depthImage;
   OpalImage renderBufferImage;
-
 
   OpalRenderpass sceneRenderpass;
   OpalFramebuffer sceneFramebuffer;
@@ -297,16 +299,11 @@ struct MatSandboxState
   OpalMesh meshes[5];
 
   uint32_t shaderCount;
-  OpalShader* pShaders;
   OpalMaterial material;
   MsInputSet materialInputSet;
-
-  ShaderCodeInfo pShaderCodeInfos[2];
+  ShaderCodeInfo* pShaderCodeInfos;
 
   MsInputSet globalInputSet;
-  //OpalInputLayout globalInputLayout;
-  //OpalInputSet globalInputSet;
-  //OpalBuffer globalInputBuffer;
 
   struct
   {

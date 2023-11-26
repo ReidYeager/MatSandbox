@@ -107,10 +107,10 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
 
     if (ImGui::BeginMenuBar())
     {
+      ImGui::MenuItem(argument->name, NULL, false, false);
+
       if (argument->type == Ms_Input_Buffer)
       {
-        ImGui::MenuItem(argument->name, NULL, false, false);
-
         if (set != &state.globalInputSet && ImGui::BeginMenu("Add Element"))
         {
           MsBufferElementType newType = ShowBufferAddElementMenu();

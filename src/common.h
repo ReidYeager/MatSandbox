@@ -38,8 +38,8 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
 void MsBufferRemoveElement(MsInputArgumentBuffer* buffer, uint32_t index);
 
 const char* MsGetShaderTypeExtension(OpalShaderType type);
-MsResult MsCompileShader(OpalShaderType type, const char* source);
-MsResult MsUpdateShader(OpalShaderType type);
+MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source);
+MsResult MsUpdateShader(ShaderCodeInfo* codeInfo);
 MsResult MsUpdateMaterial();
 
 uint32_t MsGetBufferElementSize(MsBufferElementType element);

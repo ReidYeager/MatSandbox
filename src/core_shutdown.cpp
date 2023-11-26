@@ -6,8 +6,10 @@ void MsShutdown()
   MsInputSetShutdown(&state.materialInputSet);
 
   OpalImageShutdown(&state.depthImage);
-  OpalShaderShutdown(&state.pShaders[0]);
-  OpalShaderShutdown(&state.pShaders[1]);
+  for (uint32_t i = 0; i < state.shaderCount; i++)
+  {
+    OpalShaderShutdown(&state.pShaderCodeInfos[i].shader);
+  }
   OpalMaterialShutdown(&state.material);
   OpalFramebufferShutdown(&state.uiFramebuffer);
   OpalRenderpassShutdown(&state.uiRenderpass);

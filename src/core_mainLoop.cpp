@@ -122,6 +122,12 @@ MsResult MsUpdate()
     MS_ATTEMPT(MsInputSetPushBuffers(&state.globalInputSet));
     MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
     MS_ATTEMPT(Render());
+
+    if (state.serialLoadPath[0] != 0)
+    {
+      MS_ATTEMPT(MsSerializeLoad(state.serialLoadPath));
+      state.serialLoadPath[0] = 0;
+    }
   }
 
   return Ms_Success;
