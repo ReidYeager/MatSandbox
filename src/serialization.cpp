@@ -20,28 +20,39 @@ void WriteBuffer(FILE* outFile, MsInputArgumentBuffer* buffer)
   }
 }
 
-void WriteImage(FILE* outFile, MsInputArgumentImage* image)
+void WriteImage(FILE* outFile, MsInputArgumentImage* image, bool embedImages)
 {
-  void* imageData;
-  uint32_t imageSize = OpalImageDumpData(image->image, &imageData);
+  fwrite(&embedImages, sizeof(bool), 1, outFile);
 
-  uint32_t pixelCount = image->image->extents.width * image->image->extents.height * image->image->extents.depth;
-  fwrite(&image->image->extents, sizeof(OpalExtent), 1, outFile);
-  fwrite(&image->image->format, sizeof(OpalFormat), 1, outFile);
-
-  if (imageSize == 0 || pixelCount == 0)
+  if (!embedImages)
   {
-    if (imageData)
-      LapisMemFree(imageData);
-    return;
+    uint32_t pathLength = strlen(image->sourcePath); // Does not include '\0'
+    fwrite(&pathLength, sizeof(uint32_t), 1, outFile);
+    fwrite(image->sourcePath, sizeof(char), pathLength, outFile);
   }
+  else
+  {
+    void* imageData;
+    uint32_t imageSize = OpalImageDumpData(image->image, &imageData);
 
-  fwrite(imageData, OpalFormatToSize(image->image->format), pixelCount, outFile);
+    uint32_t pixelCount = image->image->extents.width * image->image->extents.height * image->image->extents.depth;
+    fwrite(&image->image->extents, sizeof(OpalExtent), 1, outFile);
+    fwrite(&image->image->format, sizeof(OpalFormat), 1, outFile);
 
-  LapisMemFree(imageData);
+    if (imageSize == 0 || pixelCount == 0)
+    {
+      if (imageData)
+        LapisMemFree(imageData);
+      return;
+    }
+
+    fwrite(imageData, OpalFormatToSize(image->image->format), pixelCount, outFile);
+
+    LapisMemFree(imageData);
+  }
 }
 
-void WriteInputSet(FILE* outFile, MsInputSet* set)
+void WriteInputSet(FILE* outFile, MsInputSet* set, bool embedImages)
 {
   fwrite(&set->count, sizeof(uint32_t), 1, outFile);
 
@@ -52,16 +63,16 @@ void WriteInputSet(FILE* outFile, MsInputSet* set)
     switch (arg->type)
     {
     case Ms_Input_Buffer: WriteBuffer(outFile, &arg->data.buffer); break;
-    case Ms_Input_Image: WriteImage(outFile, &arg->data.image); break;
+    case Ms_Input_Image: WriteImage(outFile, &arg->data.image, embedImages); break;
     }
   }
 }
 
-MsResult MsSerializeSave(const char* path)
+MsResult MsSerializeSave(const char* path, bool embedImages)
 {
   FILE* outFile = fopen(path, "wb");
 
-  WriteInputSet(outFile, &state.materialInputSet);
+  WriteInputSet(outFile, &state.materialInputSet, embedImages);
 
   fclose(outFile);
 
@@ -92,23 +103,46 @@ void ReadBuffer(FILE* inFile, MsInputSet* set)
 
 void ReadImage(FILE* inFile, MsInputSet* set)
 {
-  OpalExtent extents;
-  OpalFormat format;
+  bool isEmbedded;
+  fread(&isEmbedded, sizeof(bool), 1, inFile);
 
-  fread(&extents, sizeof(OpalExtent), 1, inFile);
-  fread(&format, sizeof(OpalFormat), 1, inFile);
+  MsInputArgumentInitInfo newImageInfo;
+  newImageInfo.type = Ms_Input_Image;
+  newImageInfo.imageInfo.imagePath = NULL;
 
-  uint32_t pixelCount = extents.width * extents.height * extents.depth;
-  uint32_t imageSize = pixelCount * OpalFormatToSize(format);
-  void* imageData = LapisMemAlloc(imageSize);
-  fread(imageData, OpalFormatToSize(format), pixelCount, inFile);
+  if (!isEmbedded)
+  {
+    uint32_t pathLength;
+    fread(&pathLength, sizeof(uint32_t), 1, inFile); // Does not include '\0'
+    char* path = LapisMemAllocArray(char, pathLength + 1);
+    fread(path, sizeof(char), pathLength, inFile);
+    path[pathLength] = 0;
 
-  MsInputArgumentInitInfo info;
-  info.type = Ms_Input_Image;
-  info.imageInfo.imagePath = NULL;
-  info.imageInfo.extents = extents;
-  info.imageInfo.imageData = imageData;
-  MsInputSetAddArgument(set, info);
+    newImageInfo.imageInfo.imagePath = path;
+  }
+  else
+  {
+    OpalExtent extents;
+    OpalFormat format;
+
+    fread(&extents, sizeof(OpalExtent), 1, inFile);
+    fread(&format, sizeof(OpalFormat), 1, inFile);
+
+    uint32_t pixelCount = extents.width * extents.height * extents.depth;
+    uint32_t imageSize = pixelCount * OpalFormatToSize(format);
+    void* imageData = LapisMemAlloc(imageSize);
+    fread(imageData, OpalFormatToSize(format), pixelCount, inFile);
+
+    newImageInfo.imageInfo.extents = extents;
+    newImageInfo.imageInfo.imageData = imageData;
+  }
+
+  MsInputSetAddArgument(set, newImageInfo);
+
+  if (newImageInfo.imageInfo.imagePath != NULL)
+  {
+    LapisMemFree(newImageInfo.imageInfo.imagePath);
+  }
 }
 
 void ReadInputSet(FILE* inFile, MsInputSet* set)

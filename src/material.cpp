@@ -378,6 +378,15 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
   setInfo.pInputValues = &inImage;
   MS_ATTEMPT_OPAL(OpalInputSetInit(&image->set, setInfo));
 
+  if (info.imageInfo.imagePath != NULL)
+  {
+    uint32_t pathLength = strlen(info.imageInfo.imagePath);
+    image->sourcePath = LapisMemAllocArray(char, pathLength + 1);
+    image->sourcePath[pathLength] = 0;
+    LapisMemCopy(info.imageInfo.imagePath, image->sourcePath, pathLength);
+    printf(">> \"%s\" --> \"%s\"\n", info.imageInfo.imagePath, image->sourcePath);
+  }
+
   return Ms_Success;
 }
 
@@ -431,6 +440,11 @@ void MsInputSetRemoveArgument(MsInputSet* set, uint32_t index)
   {
     OpalImageShutdown(&argument->data.image.image);
     OpalInputSetShutdown(&argument->data.image.set);
+
+    if (argument->data.image.sourcePath != NULL)
+    {
+      LapisMemFree(argument->data.image.sourcePath);
+    }
   }
 
   for (uint32_t i = index; i < set->count - 1; i++)

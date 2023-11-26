@@ -191,6 +191,7 @@ struct MsInputArgumentImage
 {
   OpalImage image;
   OpalInputSet set;
+  char* sourcePath;
 };
 
 struct MsBufferElement

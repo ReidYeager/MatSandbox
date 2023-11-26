@@ -51,14 +51,16 @@ MsResult RenderUi()
 MsResult ShowSaveLoadModals()
 {
   static char pathBuffer[1024];
+  static bool embedImages = false;
 
   if (ImGui::BeginPopupModal("Save path##SavePathModal", NULL, ImGuiWindowFlags_AlwaysAutoResize))
   {
     ImGui::InputText("Save path", pathBuffer, 1024);
+    ImGui::Checkbox("Embed images", &embedImages);
 
     if (ImGui::Button("Done", ImVec2(120, 0)))
     {
-      MS_ATTEMPT(MsSerializeSave(pathBuffer));
+      MS_ATTEMPT(MsSerializeSave(pathBuffer, embedImages));
       ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
