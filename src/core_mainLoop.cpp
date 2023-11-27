@@ -1,6 +1,8 @@
 
 #include "src/common.h"
 
+#include <chrono>
+
 void HandleInput()
 {
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
@@ -89,9 +91,13 @@ MsResult UpdateSceneRenderComponents()
     return Ms_Success;
   }
 
+
   MS_ATTEMPT_OPAL(OpalImageResize(state.sceneImage, newExtents));
   MS_ATTEMPT_OPAL(OpalImageResize(state.depthImage, newExtents));
   MS_ATTEMPT_OPAL(OpalFramebufferReinit(state.sceneFramebuffer));
+
+  state.globalInputValues.viewportExtents->width = newExtents.width;
+  state.globalInputValues.viewportExtents->height = newExtents.height;
 
   *state.globalInputValues.camProj = ProjectionPerspectiveExtended(
     (float)newExtents.width / (float)newExtents.height,
@@ -112,8 +118,17 @@ MsResult UpdateSceneRenderComponents()
 
 MsResult MsUpdate()
 {
+  const float microToSecond = 0.000001f;
+  float deltaTime = 0.0f;
+  auto frameStart = std::chrono::steady_clock::now();
+  auto frameEnd = std::chrono::steady_clock::now();
+
   while (!LapisWindowGetShouldClose(state.window.lapis))
   {
+    frameEnd = std::chrono::steady_clock::now();
+    deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - frameStart).count() * microToSecond;
+    *state.globalInputValues.time += deltaTime;
+
     MS_ATTEMPT_LAPIS(LapisWindowUpdate(state.window.lapis));
 
     HandleInput();
@@ -128,6 +143,8 @@ MsResult MsUpdate()
       MS_ATTEMPT(MsSerializeLoad(state.serialLoadPath));
       state.serialLoadPath[0] = 0;
     }
+
+    frameStart = frameEnd;
   }
 
   return Ms_Success;

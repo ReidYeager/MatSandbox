@@ -402,6 +402,8 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
 
 MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
 {
+  OpalWaitIdle();
+
   MsInputArgument newArgument = {};
 
   newArgument.type = info.type;
@@ -432,6 +434,8 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
 
 void MsInputSetRemoveArgument(MsInputSet* set, uint32_t index)
 {
+  OpalWaitIdle();
+
   MsInputArgument* argument = &set->pArguments[index];
   LapisMemFree(argument->name);
   if (argument->type == Ms_Input_Buffer)

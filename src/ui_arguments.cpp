@@ -103,7 +103,8 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
 
     ImGui::PushID(argument->id);
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-    ImGui::BeginChild(argument->name, ImVec2(0, 200), ImGuiChildFlags_Border | ImGuiChildFlags_ResizeY, ImGuiWindowFlags_MenuBar);
+
+    ImGui::BeginChild(argument->name, ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY,  ImGuiWindowFlags_MenuBar);
 
     if (ImGui::BeginMenuBar())
     {
@@ -130,7 +131,7 @@ void ShowInputSetArguments(MsInputSet* set, const char* title)
         }
       }
 
-      if (set != &state.globalInputSet && ImGui::MenuItem("Close"))
+      if (set != &state.globalInputSet && ImGui::MenuItem("Remove"))
       {
         MsInputSetRemoveArgument(set, i);
 
@@ -167,14 +168,14 @@ void ShowArgumentBuffer(MsInputArgumentBuffer* buffer, bool canEditElementOrder)
   for (uint32_t i = 0; i < buffer->elementCount; i++)
   {
     ImGui::PushID(i);
-    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
-    ImGui::BeginChild("element", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_MenuBar);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
+    ImGui::BeginChild("element", ImVec2(-FLT_MIN, 0), ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_MenuBar);
 
     if (ImGui::BeginMenuBar())
     {
       ImGui::MenuItem(buffer->pElements[i].name, NULL, false, false);
 
-      if (canEditElementOrder && ImGui::MenuItem("Close"))
+      if (canEditElementOrder && ImGui::MenuItem("Remove"))
       {
         MsBufferRemoveElement(buffer, i);
         i--;

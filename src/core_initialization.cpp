@@ -223,17 +223,26 @@ MsResult InitUiRenderResources()
 
 MsResult InitGlobalSet()
 {
-  MsBufferElementType bufferContentTypes[3] = { Ms_Buffer_Mat4, Ms_Buffer_Mat4, Ms_Buffer_Float3 };
+  const uint32_t globalBufferElementCount = 5;
+  MsBufferElementType bufferContentTypes[globalBufferElementCount] = {
+    Ms_Buffer_Float,  // Time
+    Ms_Buffer_Uint2,  // Viewport extents
+    Ms_Buffer_Mat4,   // Camera view matrix
+    Ms_Buffer_Mat4,   // Camera projection matrix
+    Ms_Buffer_Float3, // Camera forward vector
+  };
 
   MsInputArgumentInitInfo bufferInfo;
   bufferInfo.type = Ms_Input_Buffer;
-  bufferInfo.bufferInfo.elementCount = 3;
+  bufferInfo.bufferInfo.elementCount = globalBufferElementCount;
   bufferInfo.bufferInfo.pElementTypes = bufferContentTypes;
   MS_ATTEMPT(MsInputSetAddArgument(&state.globalInputSet, bufferInfo))
 
-  state.globalInputValues.camView = (Mat4*)state.globalInputSet.pArguments[0].data.buffer.pElements[0].data;
-  state.globalInputValues.camProj = (Mat4*)state.globalInputSet.pArguments[0].data.buffer.pElements[1].data;
-  state.globalInputValues.camForward = (Vec3*)state.globalInputSet.pArguments[0].data.buffer.pElements[2].data;
+  state.globalInputValues.time = (float*)state.globalInputSet.pArguments[0].data.buffer.pElements[0].data;
+  state.globalInputValues.viewportExtents = (Vec2U*)state.globalInputSet.pArguments[0].data.buffer.pElements[1].data;
+  state.globalInputValues.camView = (Mat4*)state.globalInputSet.pArguments[0].data.buffer.pElements[2].data;
+  state.globalInputValues.camProj = (Mat4*)state.globalInputSet.pArguments[0].data.buffer.pElements[3].data;
+  state.globalInputValues.camForward = (Vec3*)state.globalInputSet.pArguments[0].data.buffer.pElements[4].data;
 
   MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.globalInputSet));
 

@@ -92,8 +92,10 @@ struct MsMeshInfo
 #define MATSANDBOX_VERT_DEFAULT_SOURCE                                         \
   "#version 460\n"                                                             \
   "\n"                                                                         \
-  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"                \
+  "layout(set = 0, binding = 0) uniform GlobalUniformStruct\n"                 \
   "{\n"                                                                        \
+  "  float time;\n"                                                            \
+  "  uvec2 viewportExtents;\n"                                                 \
   "  mat4 camView;\n"                                                          \
   "  mat4 camProj;\n"                                                          \
   "  vec3 cameraForward;\n"                                                    \
@@ -117,8 +119,10 @@ struct MsMeshInfo
 #define MATSANDBOX_FRAG_DEFAULT_SOURCE                                       \
   "#version 460\n"                                                           \
   "\n"                                                                       \
-  "layout(set = 0, binding = 0) uniform GlobalUniformStructd\n"              \
+  "layout(set = 0, binding = 0) uniform GlobalUniformStruct\n"               \
   "{\n"                                                                      \
+  "  float time;\n"                                                          \
+  "  uvec2 viewportExtents;\n"                                               \
   "  mat4 camView;\n"                                                        \
   "  mat4 camProj;\n"                                                        \
   "  vec3 cameraForward;\n"                                                  \
@@ -307,6 +311,8 @@ struct MatSandboxState
 
   struct
   {
+    float* time;
+    Vec2U* viewportExtents;
     Mat4* camView;
     Mat4* camProj;
     Vec3* camForward;

@@ -174,28 +174,34 @@ MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
 
   if (ImGui::CollapsingHeader(title, ImGuiTreeNodeFlags_DefaultOpen))
   {
-    if (ImGui::Button("Compile"))
+    ImGui::BeginChild(title, { -FLT_MIN, 0 }, ImGuiChildFlags_Border | ImGuiChildFlags_ResizeY, ImGuiWindowFlags_MenuBar);
+
+    if (ImGui::BeginMenuBar())
     {
-      OpalWaitIdle();
-
-      if (MsCompileShader(codeInfo, codeInfo->buffer) == Ms_Success)
+      if (ImGui::MenuItem("Compile"))
       {
-        MS_ATTEMPT(MsUpdateShader(codeInfo));
-        MS_ATTEMPT(MsUpdateMaterial());
-        MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
-      }
-    }
+        OpalWaitIdle();
 
-    ImGui::SameLine();
+        if (MsCompileShader(codeInfo, codeInfo->buffer) == Ms_Success)
+        {
+          MS_ATTEMPT(MsUpdateShader(codeInfo));
+          MS_ATTEMPT(MsUpdateMaterial());
+          MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+      }
+
+      ImGui::EndMenuBar();
+    }
 
     ImGui::InputTextMultiline(
       "##source",
       codeInfo->buffer,
       codeInfo->size + 1,
-      { -FLT_MIN, ImGui::GetTextLineHeight() * 20 },
+      { -FLT_MIN, -FLT_MIN },
       ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize,
       TextBoxResizeCallback,
       &codeInfo->type);
+
+    ImGui::EndChild();
   }
 
   ImGui::PopID();
