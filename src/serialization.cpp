@@ -223,5 +223,7 @@ MsResult MsSerializeLoad(const char* path)
   MS_ATTEMPT(MsUpdateMaterial());
   MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
 
+  state.serialLoadPath[0] = 0;
+
   return Ms_Success;
 }

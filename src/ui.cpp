@@ -78,7 +78,7 @@ MsResult ShowSaveLoadModals()
 
     if (ImGui::Button("Open", ImVec2(120, 0)))
     {
-      MS_ATTEMPT(MsSerializeLoad(pathBuffer));
+      strcpy(state.serialLoadPath, pathBuffer);
       ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
@@ -166,6 +166,17 @@ static const char* shaderTypeNames[2] = {
   "Fragment"
 };
 
+void ShaderAddToCompileQueue(ShaderCodeInfo* codeInfo)
+{
+  if (state.shaderCompileQueueLength >= Opal_Shader_COUNT)
+    return;
+
+  uint32_t index = state.shaderCompileQueueLength;
+  state.shaderCompileQueueLength++;
+
+  state.pShaderCompileQueue[index] = codeInfo;
+}
+
 MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
 {
   const char* title = shaderTypeNames[codeInfo->type];
@@ -180,13 +191,7 @@ MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
     {
       if (ImGui::MenuItem("Compile"))
       {
-        OpalWaitIdle();
-
-        if (MsCompileShader(codeInfo, codeInfo->buffer) == Ms_Success)
-        {
-          MS_ATTEMPT(MsUpdateShader(codeInfo));
-          MS_ATTEMPT(MsUpdateMaterial());
-          MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+        ShaderAddToCompileQueue(codeInfo);
       }
 
       ImGui::EndMenuBar();

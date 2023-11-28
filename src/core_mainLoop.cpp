@@ -131,6 +131,11 @@ MsResult MsUpdate()
 
     MS_ATTEMPT_LAPIS(LapisWindowUpdate(state.window.lapis));
 
+    if (state.serialLoadPath[0] != 0)
+      MS_ATTEMPT(MsSerializeLoad(state.serialLoadPath));
+    MS_ATTEMPT(MsCompileQueuedShaders());
+    MS_ATTEMPT(MsReimportQueuedImages());
+
     HandleInput();
 
     MS_ATTEMPT(UpdateSceneRenderComponents());

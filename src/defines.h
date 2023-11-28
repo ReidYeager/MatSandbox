@@ -274,6 +274,13 @@ struct ShaderCodeInfo
   OpalShader shader;
 };
 
+struct ImageReimportInfo
+{
+  MsInputSet* set;
+  uint32_t argumentIndex;
+  char pathBuffer[1024];
+};
+
 struct MatSandboxState
 {
   MsbWindow window;
@@ -308,6 +315,11 @@ struct MatSandboxState
   ShaderCodeInfo* pShaderCodeInfos;
 
   MsInputSet globalInputSet;
+
+  uint32_t shaderCompileQueueLength;
+  ShaderCodeInfo* pShaderCompileQueue[Opal_Shader_COUNT];
+  uint32_t imageReimportQueueLength;
+  ImageReimportInfo pImageReimportQueue[10];
 
   struct
   {

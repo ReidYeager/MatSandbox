@@ -7,6 +7,20 @@ void ShowBufferElement(MsBufferElement* element);
 MsBufferElementType ShowBufferAddElementMenu();
 void ShowArgumentImage(MsInputArgumentImage* image);
 
+void AddImageToReimportQueue(MsInputSet* set, uint32_t argIndex, const char* filePath)
+{
+  if (state.imageReimportQueueLength >= 10)
+    return;
+
+  uint32_t index = state.imageReimportQueueLength;
+  ImageReimportInfo* info = &state.pImageReimportQueue[index];
+  info->set = set;
+  info->argumentIndex = argIndex;
+  strcpy_s(info->pathBuffer, 1024, filePath);
+
+  state.imageReimportQueueLength++;
+}
+
 MsResult MsUiShowArgumentsPanel()
 {
   static char imagePathBuffer[1024];
@@ -30,7 +44,7 @@ MsResult MsUiShowArgumentsPanel()
       {
         // Reimport
         uint32_t argumentIndex = (state.uiImageImportFlags & ~12) >> 4;
-        MsInputSetReloadImage(&state.materialInputSet, argumentIndex, imagePathBuffer);
+        AddImageToReimportQueue(&state.materialInputSet, argumentIndex, imagePathBuffer);
       }
 
       state.uiImageImportFlags = 0;

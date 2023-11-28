@@ -42,6 +42,9 @@ MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source);
 MsResult MsUpdateShader(ShaderCodeInfo* codeInfo);
 MsResult MsUpdateMaterial();
 
+MsResult MsCompileQueuedShaders();
+MsResult MsReimportQueuedImages();
+
 uint32_t MsGetBufferElementSize(MsBufferElementType element);
 uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType element); 
 

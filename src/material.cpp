@@ -63,6 +63,25 @@ const char* MsGetShaderTypeExtension(OpalShaderType type)
   return shaderTypeExtension;
 }
 
+MsResult MsCompileQueuedShaders()
+{
+  uint32_t queuedCount = state.shaderCompileQueueLength;
+  for (uint32_t i = 0; i < queuedCount; i++)
+  {
+    ShaderCodeInfo* codeInfo = state.pShaderCompileQueue[i];
+    if (MsCompileShader(codeInfo, codeInfo->buffer) == Ms_Success)
+    {
+      MS_ATTEMPT(MsUpdateShader(codeInfo));
+      MS_ATTEMPT(MsUpdateMaterial());
+      MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+    }
+
+    state.shaderCompileQueueLength--;
+  }
+
+  return Ms_Success;
+}
+
 MsResult MsUpdateShader(ShaderCodeInfo* codeInfo)
 {
   char shaderNameBuffer[MS_SHADER_NAME_MAX_LENGTH];
@@ -397,6 +416,18 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
     LapisMemCopy(info.imageInfo.imagePath, image->sourcePath, pathLength);
   }
 
+  return Ms_Success;
+}
+
+MsResult MsReimportQueuedImages()
+{
+  uint32_t queueCount = state.imageReimportQueueLength;
+  for (uint32_t i = 0; i < queueCount; i++)
+  {
+    ImageReimportInfo* info = &state.pImageReimportQueue[i];
+    MS_ATTEMPT(MsInputSetReloadImage(info->set, info->argumentIndex, info->pathBuffer));
+    state.imageReimportQueueLength--;
+  }
   return Ms_Success;
 }
 
