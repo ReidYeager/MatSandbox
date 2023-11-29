@@ -166,7 +166,7 @@ static const char* shaderTypeNames[2] = {
   "Fragment"
 };
 
-void ShaderAddToCompileQueue(ShaderCodeInfo* codeInfo)
+void MsShaderAddToCompileQueue(ShaderCodeInfo* codeInfo)
 {
   if (state.shaderCompileQueueLength >= Opal_Shader_COUNT)
     return;
@@ -191,7 +191,7 @@ MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
     {
       if (ImGui::MenuItem("Compile"))
       {
-        ShaderAddToCompileQueue(codeInfo);
+        MsShaderAddToCompileQueue(codeInfo);
       }
 
       ImGui::EndMenuBar();

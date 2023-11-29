@@ -5,7 +5,13 @@
 
 void HandleInput()
 {
-  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_Escape)) LapisWindowMarkForClosure(state.window.lapis);
+  if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_S) && LapisInputGetValue(state.window.lapis, Lapis_Input_Button_Lctrl))
+  {
+    for (uint32_t i = 0; i < state.shaderCount; i++)
+    {
+      MsShaderAddToCompileQueue(&state.pShaderCodeInfos[i]);
+    }
+  }
 
   if (state.inputState.previewHovered)
   {

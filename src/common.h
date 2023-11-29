@@ -42,6 +42,7 @@ MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source);
 MsResult MsUpdateShader(ShaderCodeInfo* codeInfo);
 MsResult MsUpdateMaterial();
 
+void MsShaderAddToCompileQueue(ShaderCodeInfo* codeInfo);
 MsResult MsCompileQueuedShaders();
 MsResult MsReimportQueuedImages();
 

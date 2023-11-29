@@ -94,25 +94,27 @@ struct MsMeshInfo
   "\n"                                                                         \
   "layout(set = 0, binding = 0) uniform GlobalUniformStruct\n"                 \
   "{\n"                                                                        \
-  "  float time;\n"                                                            \
-  "  uvec2 viewportExtents;\n"                                                 \
-  "  mat4 camView;\n"                                                          \
-  "  mat4 camProj;\n"                                                          \
-  "  vec3 cameraForward;\n"                                                    \
+  "\tfloat time;\n"                                                            \
+  "\tuvec2 viewportExtents;\n"                                                 \
+  "\tmat4 camView;\n"                                                          \
+  "\tmat4 camProj;\n"                                                          \
+  "\tvec3 cameraForward;\n"                                                    \
   "} global;\n"                                                                \
   "\n"                                                                         \
   "layout(location = 0) in vec3 inPosition;\n"                                 \
   "layout(location = 1) in vec3 inNormal;\n"                                   \
   "layout(location = 2) in vec2 inUv;\n"                                       \
   "\n"                                                                         \
-  "layout(location = 0) out vec3 outNormal;\n"                                 \
-  "layout(location = 1) out vec2 outUv;\n"                                     \
+  "layout(location = 0) out vec3 outPosition;\n"                               \
+  "layout(location = 1) out vec3 outNormal;\n"                                 \
+  "layout(location = 2) out vec2 outUv;\n"                                     \
   "\n"                                                                         \
   "void main()\n"                                                              \
   "{\n"                                                                        \
-  "  outNormal = inNormal;\n"                                                  \
-  "  outUv = inUv;\n"                                                          \
-  "  gl_Position = global.camProj * global.camView * vec4(inPosition, 1.0);\n" \
+  "\toutPosition = inPosition;\n"                                              \
+  "\toutNormal = inNormal;\n"                                                  \
+  "\toutUv = inUv;\n"                                                          \
+  "\tgl_Position = global.camProj * global.camView * vec4(inPosition, 1.0);\n" \
   "}\n"
 
 
@@ -121,21 +123,22 @@ struct MsMeshInfo
   "\n"                                                                       \
   "layout(set = 0, binding = 0) uniform GlobalUniformStruct\n"               \
   "{\n"                                                                      \
-  "  float time;\n"                                                          \
-  "  uvec2 viewportExtents;\n"                                               \
-  "  mat4 camView;\n"                                                        \
-  "  mat4 camProj;\n"                                                        \
-  "  vec3 cameraForward;\n"                                                  \
+  "\tfloat time;\n"                                                          \
+  "\tuvec2 viewportExtents;\n"                                               \
+  "\tmat4 camView;\n"                                                        \
+  "\tmat4 camProj;\n"                                                        \
+  "\tvec3 cameraForward;\n"                                                  \
   "} global;\n"                                                              \
   "\n"                                                                       \
-  "layout(location = 0) in vec3 inNormal;\n"                                 \
-  "layout(location = 1) in vec2 inUv;\n"                                     \
+  "layout(location = 0) in vec3 inPosition;\n"                               \
+  "layout(location = 1) in vec3 inNormal;\n"                                 \
+  "layout(location = 2) in vec2 inUv;\n"                                     \
   "\n"                                                                       \
   "layout(location = 0) out vec4 outColor;\n"                                \
   "\n"                                                                       \
   "void main()\n"                                                            \
   "{\n"                                                                      \
-  "  outColor = vec4(1.0);\n"                                                \
+  "\toutColor = vec4(1.0);\n"                                                \
   "}\n"
 
 enum MsInputType
