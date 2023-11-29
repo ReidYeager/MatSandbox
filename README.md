@@ -1,7 +1,7 @@
 # Material sandbox
 A shader editor written in C/C++ using Vulkan to allow for quick GLSL iteration.
 
-[CirclesTest.webm](https://github.com/ReidYeager/MatSandbox/assets/33890768/c2b1c2bf-46ba-4c00-9977-16eb7dcccb49)
+[HalftoneImageDemo.mp4](https://github.com/ReidYeager/MatSandbox/assets/33890768/60f9a084-43d1-412e-a0aa-2f9c44bc18c4)
 
 Runs shader compilation and allows for the customization of the input set at runtime with an ImGui interface.
 
@@ -28,3 +28,5 @@ Requires the VulkanSDK to be installed for shader compilation
 	- Input arguments
 - Support for more shader types
 	- Compute, geometry, mesh
+
+[CirclesTest.webm](https://github.com/ReidYeager/MatSandbox/assets/33890768/c2b1c2bf-46ba-4c00-9977-16eb7dcccb49)

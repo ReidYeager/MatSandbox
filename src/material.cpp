@@ -72,11 +72,15 @@ MsResult MsCompileQueuedShaders()
     if (MsCompileShader(codeInfo, codeInfo->buffer) == Ms_Success)
     {
       MS_ATTEMPT(MsUpdateShader(codeInfo));
-      MS_ATTEMPT(MsUpdateMaterial());
-      MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
     }
 
     state.shaderCompileQueueLength--;
+  }
+
+  if (queuedCount)
+  {
+    MS_ATTEMPT(MsUpdateMaterial());
+    MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
   }
 
   return Ms_Success;
@@ -428,6 +432,13 @@ MsResult MsReimportQueuedImages()
     MS_ATTEMPT(MsInputSetReloadImage(info->set, info->argumentIndex, info->pathBuffer));
     state.imageReimportQueueLength--;
   }
+
+  if (queueCount)
+  {
+    MS_ATTEMPT(MsUpdateMaterial());
+    MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+  }
+
   return Ms_Success;
 }
 
