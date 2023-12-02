@@ -6,6 +6,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#ifdef WIN32
+#include <io.h>
+#define F_OK 0
+#define access _access
+#else
+#include <unistd.h>
+#endif
+
 uint32_t MsGetBufferElementSize(MsBufferElementType element)
 {
   switch (element)
@@ -513,6 +521,12 @@ void MsInputSetRemoveArgument(MsInputSet* set, uint32_t index)
 
 MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
 {
+  if (access(path, F_OK) != 0)
+  {
+    LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"\n", path);
+    return Ms_Fail;
+  }
+
   MsInputArgumentImage* image = &set->pArguments[imageIndex].data.image;
 
   int channels;
@@ -526,7 +540,7 @@ MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
 
   if (imageWidth <= 0 || imageWidth <= 0 || imageSource == NULL)
   {
-    LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"", path);
+    LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"\n", path);
     return Ms_Fail;
   }
 
