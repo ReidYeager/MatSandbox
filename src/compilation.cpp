@@ -17,7 +17,7 @@ uint32_t ParseCompilationErrors(FILE* pipe)
   return errorCount;
 }
 
-MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source)
+MsbResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source)
 {
   bool isFragment = codeInfo->type == Opal_Shader_Fragment;
   uint32_t size = strlen(source);
@@ -40,9 +40,9 @@ MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source)
   if (ParseCompilationErrors(fp) > 0)
   {
     _pclose(fp);
-    return Ms_Fail;
+    return Msb_Fail;
   }
   _pclose(fp);
 
-  return Ms_Success;
+  return Msb_Success;
 }

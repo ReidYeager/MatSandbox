@@ -41,7 +41,7 @@ template<> struct hash<MsVertex>
 };
 }
 
-MsResult LoadTinyObjMesh(const char* path, tinyobj::attrib_t* attrib, std::vector<tinyobj::shape_t>* shapes)
+MsbResult LoadTinyObjMesh(const char* path, tinyobj::attrib_t* attrib, std::vector<tinyobj::shape_t>* shapes)
 {
   std::string loadWarnings, loadErrors;
   std::vector<tinyobj::material_t> materials;
@@ -53,17 +53,17 @@ MsResult LoadTinyObjMesh(const char* path, tinyobj::attrib_t* attrib, std::vecto
       path,
       loadWarnings.c_str(),
       loadErrors.c_str());
-    return MS_Fail_External;
+    return Msb_Fail_External;
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult BuildMeshFromFile(const char* path, MsMeshInfo* outMeshInfo)
+MsbResult BuildMeshFromFile(const char* path, MsMeshInfo* outMeshInfo)
 {
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
-  MS_ATTEMPT(LoadTinyObjMesh(path, &attrib, &shapes));
+  MSB_ATTEMPT(LoadTinyObjMesh(path, &attrib, &shapes));
 
   // Assemble mesh =====
   std::unordered_map<MsVertex, uint32_t> vertMap = {};
@@ -104,20 +104,20 @@ MsResult BuildMeshFromFile(const char* path, MsMeshInfo* outMeshInfo)
     }
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult LoadMesh(const char* path, OpalMesh* outMesh)
+MsbResult LoadMesh(const char* path, OpalMesh* outMesh)
 {
   MsMeshInfo meshData = {};
-  MS_ATTEMPT(BuildMeshFromFile(path, &meshData));
+  MSB_ATTEMPT(BuildMeshFromFile(path, &meshData));
 
   OpalMeshInitInfo meshInfo = {};
   meshInfo.vertexCount = meshData.verts.size();
   meshInfo.pVertices = meshData.verts.data();
   meshInfo.indexCount = meshData.indices.size();
   meshInfo.pIndices = meshData.indices.data();
-  MS_ATTEMPT_OPAL(OpalMeshInit(outMesh, meshInfo));
+  MSB_ATTEMPT_OPAL(OpalMeshInit(outMesh, meshInfo));
 
-  return Ms_Success;
+  return Msb_Success;
 }

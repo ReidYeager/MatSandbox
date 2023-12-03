@@ -21,9 +21,9 @@ void AddImageToReimportQueue(MsInputSet* set, uint32_t argIndex, const char* fil
   state.imageReimportQueueLength++;
 }
 
-MsResult MsUiShowArgumentsPanel()
+MsbResult MsUiShowArgumentsPanel()
 {
-  static char imagePathBuffer[1024];
+  static char imagePathBuffer[1024] = "D:/Dev/MatSandbox/res/textures/TestNormal.png";
   ImGui::Begin("Arguments", NULL, ImGuiWindowFlags_MenuBar);
 
   if (ImGui::BeginPopupModal("Import image##AddImageModal", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -99,7 +99,7 @@ MsResult MsUiShowArgumentsPanel()
 
   ImGui::End();
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
 void ShowInputSetArguments(MsInputSet* set, const char* title)

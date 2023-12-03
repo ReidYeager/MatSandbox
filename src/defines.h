@@ -25,52 +25,72 @@
 #define MS_SHADER_NAME_MAX_LENGTH 64
 #define MS_CODE_MAX_LENGTH 2048
 
-enum MsResult
+#define MSB_LOG(msg, ...) LapisConsolePrintMessage(Lapis_Console_Info, "MSB :: " msg, __VA_ARGS__);
+#define MSB_ERR(msg, ...) LapisConsolePrintMessage(Lapis_Console_Error, "MSB :: " msg, __VA_ARGS__);
+
+enum MsbResult
 {
-  Ms_Success,
-  Ms_Fail,
-  Ms_Fail_Invalid_Field,
-  MS_Fail_External
+  Msb_Success,
+  Msb_Fail,
+  Msb_Fail_Invalid_Field,
+  Msb_Fail_External
 };
 
-#define MS_ATTEMPT(fn, ...) \
-{                           \
-  MsResult result = (fn);   \
-  if (result != Ms_Success) \
-  {                         \
-    return Ms_Fail;         \
-  }                         \
+extern uint32_t attemptDepth;
+
+#define MSB_ATTEMPT(fn, ...)                                                                       \
+{                                                                                                  \
+  attemptDepth++;                                                                                  \
+  MsbResult result = (fn);                                                                         \
+  if (result != Msb_Success)                                                                       \
+  {                                                                                                \
+    attemptDepth--;                                                                                \
+    MSB_ERR("%u :: Function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                              \
+      __VA_ARGS__;                                                                                 \
+    }                                                                                              \
+    return Msb_Fail;                                                                               \
+  }                                                                                                \
+  attemptDepth--;                                                                                  \
 }
 
-#define MS_ATTEMPT_OPAL(fn, ...) \
-{                                \
-  OpalResult result = (fn);      \
-  if (result != Opal_Success)    \
-  {                              \
-    {                            \
-      __VA_ARGS__;               \
-    }                            \
-    return Ms_Fail;              \
-  }                              \
+#define MSB_ATTEMPT_OPAL(fn, ...)                                                                       \
+{                                                                                                       \
+  attemptDepth++;                                                                                       \
+  OpalResult result = (fn);                                                                             \
+  if (result != Opal_Success)                                                                           \
+  {                                                                                                     \
+    attemptDepth--;                                                                                     \
+    MSB_ERR("%u :: Opal function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                                   \
+      __VA_ARGS__;                                                                                      \
+    }                                                                                                   \
+    return Msb_Fail;                                                                                    \
+  }                                                                                                     \
+  attemptDepth--;                                                                                       \
 }
 
-#define MS_ATTEMPT_LAPIS(fn, ...) \
-{                                 \
-  LapisResult result = (fn);      \
-  if (result != Lapis_Success)    \
-  {                               \
-    {                             \
-      __VA_ARGS__;                \
-    }                             \
-    return Ms_Fail;               \
-  }                               \
+#define MSB_ATTEMPT_LAPIS(fn, ...)                                                                       \
+{                                                                                                        \
+  attemptDepth++;                                                                                        \
+  LapisResult result = (fn);                                                                             \
+  if (result != Lapis_Success)                                                                           \
+  {                                                                                                      \
+    attemptDepth--;                                                                                      \
+    MSB_ERR("%u :: Lapis function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                                    \
+      __VA_ARGS__;                                                                                       \
+    }                                                                                                    \
+    return Msb_Fail;                                                                                     \
+  }                                                                                                      \
+  attemptDepth--;                                                                                        \
 }
 
-typedef struct MsbWindow
+typedef struct MsWindow
 {
   LapisWindow lapis;
   OpalWindow opal;
-} MsbWindow;
+} MsWindow;
 
 struct MsVertex {
   Vec3 position;
@@ -264,7 +284,7 @@ struct MsMaterialInfo
   uint32_t inputArgumentCount;
   MsInputArgument* pInputArguements;
 
-  OpalInputLayout inputLayout;
+  OpalInputLayout singleImageLayout;
   OpalInputSet inputSet;
 };
 
@@ -286,7 +306,7 @@ struct ImageReimportInfo
 
 struct MatSandboxState
 {
-  MsbWindow window;
+  MsWindow window;
   char serialLoadPath[1024];
 
   struct

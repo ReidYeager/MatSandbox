@@ -1,13 +1,18 @@
 
 #include "src/common.h"
 
+#include "src/application.h"
+
+uint32_t attemptDepth = 0;
+
 MatSandboxState state;
 
 int main(void)
 {
-  MS_ATTEMPT(MsInit());
-  MS_ATTEMPT(MsUpdate());
-  MsShutdown();
+  //MSB_ATTEMPT(MsInit());
+  //MSB_ATTEMPT(MsUpdate());
+  //MsShutdown();
 
-  return 0;
+  MsbApplication a;
+  return (int)a.Run();
 }

@@ -19,43 +19,43 @@
 extern OpalShader shaders[2];
 extern OpalMaterial material;
 
-MsResult MsInit();
-MsResult MsUpdate();
+MsbResult MsInit();
+MsbResult MsUpdate();
 void MsShutdown();
 
-MsResult UpdateCamera();
+MsbResult UpdateCamera();
 
-MsResult RenderUi();
+MsbResult RenderUi();
 
-MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info);
+MsbResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info);
 void MsInputSetRemoveArgument(MsInputSet* set, uint32_t);
-MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set);
-MsResult MsInputSetPushBuffers(MsInputSet* set);
-MsResult MsUpdateInputArgument(MsInputArgument* argument);
-MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path);
+MsbResult MsInputSetUpdateLayoutAndSet(MsInputSet* set);
+MsbResult MsInputSetPushBuffers(MsInputSet* set);
+MsbResult MsUpdateInputArgument(MsInputArgument* argument);
+MsbResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path);
 
-MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type);
+MsbResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type);
 void MsBufferRemoveElement(MsInputArgumentBuffer* buffer, uint32_t index);
 
 const char* MsGetShaderTypeExtension(OpalShaderType type);
-MsResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source);
-MsResult MsUpdateShader(ShaderCodeInfo* codeInfo);
-MsResult MsUpdateMaterial();
+MsbResult MsCompileShader(ShaderCodeInfo* codeInfo, const char* source);
+MsbResult MsUpdateShader(ShaderCodeInfo* codeInfo);
+MsbResult MsUpdateMaterial();
 
 void MsShaderAddToCompileQueue(ShaderCodeInfo* codeInfo);
-MsResult MsCompileQueuedShaders();
-MsResult MsReimportQueuedImages();
+MsbResult MsCompileQueuedShaders();
+MsbResult MsReimportQueuedImages();
 
 uint32_t MsGetBufferElementSize(MsBufferElementType element);
 uint32_t MsBufferOffsetToBaseAlignment(uint32_t offset, MsBufferElementType element); 
 
-MsResult MsUiShowArgumentsPanel();
-MsResult Render();
+MsbResult MsUiShowArgumentsPanel();
+MsbResult Render();
 
-MsResult LoadMesh(const char* path, OpalMesh* outMesh);
+MsbResult LoadMesh(const char* path, OpalMesh* outMesh);
 
 void MsInputSetShutdown(MsInputSet* set);
-MsResult MsSerializeSave(const char* path, bool embedImages);
-MsResult MsSerializeLoad(const char* path);
+MsbResult MsSerializeSave(const char* path, bool embedImages);
+MsbResult MsSerializeLoad(const char* path);
 
 #endif // !MATSANDBOX_COMMON_H

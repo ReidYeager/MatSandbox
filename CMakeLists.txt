@@ -20,6 +20,13 @@ file(GLOB_RECURSE ImguiFiles CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/
 add_executable(MatSandbox
   ${ImguiFiles}
 
+  src/application_init.cpp
+  src/application_update.cpp
+  src/application_shutdown.cpp
+
+  src/material.cpp
+  src/input_set.cpp
+
   # App =====
   src/defines.h
   src/common.h
@@ -32,7 +39,7 @@ add_executable(MatSandbox
   src/camera.cpp
 
   src/compilation.cpp
-  src/material.cpp
+  src/material_old.cpp
   src/serialization.cpp
 
   src/mesh.cpp

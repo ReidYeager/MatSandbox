@@ -1,11 +1,11 @@
 
 #include "src/common.h"
 
-MsResult ShowPreview();
-MsResult ShowCode();
-MsResult ShowSaveLoadModals();
+MsbResult ShowPreview();
+MsbResult ShowCode();
+MsbResult ShowSaveLoadModals();
 
-MsResult RenderUi()
+MsbResult RenderUi()
 {
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplWin32_NewFrame();
@@ -28,10 +28,11 @@ MsResult RenderUi()
 
   ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-  MS_ATTEMPT(ShowPreview());
-  MS_ATTEMPT(ShowCode());
-  MS_ATTEMPT(MsUiShowArgumentsPanel());
+  MSB_ATTEMPT(ShowPreview());
+  MSB_ATTEMPT(ShowCode());
+  MSB_ATTEMPT(MsUiShowArgumentsPanel());
 
+  //ImGui::ShowDemoWindow();
 
   ImGui::EndFrame();
 
@@ -45,12 +46,12 @@ MsResult RenderUi()
   ImDrawData* drawData = ImGui::GetDrawData();
   ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult ShowSaveLoadModals()
+MsbResult ShowSaveLoadModals()
 {
-  static char pathBuffer[1024];
+  static char pathBuffer[1024] = "D:/Dev/MatSandbox/testout.dat";
   static bool embedImages = false;
 
   if (ImGui::BeginPopupModal("Save path##SavePathModal", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -60,7 +61,7 @@ MsResult ShowSaveLoadModals()
 
     if (ImGui::Button("Done", ImVec2(120, 0)))
     {
-      MS_ATTEMPT(MsSerializeSave(pathBuffer, embedImages));
+      MSB_ATTEMPT(MsSerializeSave(pathBuffer, embedImages));
       ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
@@ -90,14 +91,14 @@ MsResult ShowSaveLoadModals()
     ImGui::EndPopup();
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-// =====
+// ===============
 // Preview
-// =====
+// ===============
 
-MsResult ShowPreview()
+MsbResult ShowPreview()
 {
   ImVec2 sceneExtents = { (float)state.sceneImage->extents.width, (float)state.sceneImage->extents.height };
   ImGui::Begin("Preview");
@@ -111,16 +112,16 @@ MsResult ShowPreview()
 
   ImGui::End();
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-// =====
+// ===============
 // Code
-// =====
+// ===============
 
-MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo);
+MsbResult ShowCodeBlock(ShaderCodeInfo* codeInfo);
 
-MsResult ShowCode()
+MsbResult ShowCode()
 {
   ImGui::Begin("Code");
 
@@ -129,12 +130,12 @@ MsResult ShowCode()
     if (i > 0)
       ImGui::Spacing();
 
-    MS_ATTEMPT(ShowCodeBlock(&state.pShaderCodeInfos[i]));
+    MSB_ATTEMPT(ShowCodeBlock(&state.pShaderCodeInfos[i]));
   }
 
   ImGui::End();
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
 int TextBoxResizeCallback(ImGuiInputTextCallbackData* callbackData)
@@ -177,7 +178,7 @@ void MsShaderAddToCompileQueue(ShaderCodeInfo* codeInfo)
   state.pShaderCompileQueue[index] = codeInfo;
 }
 
-MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
+MsbResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
 {
   const char* title = shaderTypeNames[codeInfo->type];
 
@@ -210,5 +211,5 @@ MsResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
   }
 
   ImGui::PopID();
-  return Ms_Success;
+  return Msb_Success;
 }

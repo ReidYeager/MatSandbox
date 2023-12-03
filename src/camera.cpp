@@ -1,7 +1,7 @@
 
 #include "src/common.h"
 
-MsResult UpdateCamera()
+MsbResult UpdateCamera()
 {
   Quaternion camRotQuat = QuaternionFromEuler(state.camera.transform.rotation);
 
@@ -13,5 +13,5 @@ MsResult UpdateCamera()
 
   state.camera.rotationQuat = QuaternionFromEuler(state.camera.transform.rotation);
 
-  return Ms_Success;
+  return Msb_Success;
 }

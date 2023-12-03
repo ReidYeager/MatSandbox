@@ -81,7 +81,7 @@ void WriteShaders(FILE* outFile)
   }
 }
 
-MsResult MsSerializeSave(const char* path, bool embedImages)
+MsbResult MsSerializeSave(const char* path, bool embedImages)
 {
   FILE* outFile = fopen(path, "wb");
 
@@ -90,12 +90,12 @@ MsResult MsSerializeSave(const char* path, bool embedImages)
 
   fclose(outFile);
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-// ======
+// ===============
 // Load
-// ======
+// ===============
 
 void ReadBuffer(FILE* inFile, MsInputSet* set)
 {
@@ -200,7 +200,7 @@ void ReadShaders(FILE* inFile)
   }
 }
 
-MsResult MsSerializeLoad(const char* path)
+MsbResult MsSerializeLoad(const char* path)
 {
   OpalWaitIdle();
 
@@ -214,16 +214,16 @@ MsResult MsSerializeLoad(const char* path)
 
   for (uint32_t i = 0; i < state.shaderCount; i++)
   {
-    if (MsCompileShader(&state.pShaderCodeInfos[i], state.pShaderCodeInfos[i].buffer) == Ms_Success)
+    if (MsCompileShader(&state.pShaderCodeInfos[i], state.pShaderCodeInfos[i].buffer) == Msb_Success)
     {
-      MS_ATTEMPT(MsUpdateShader(&state.pShaderCodeInfos[i]));
+      MSB_ATTEMPT(MsUpdateShader(&state.pShaderCodeInfos[i]));
     }
   }
 
-  MS_ATTEMPT(MsUpdateMaterial());
-  MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+  MSB_ATTEMPT(MsUpdateMaterial());
+  MSB_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
 
   state.serialLoadPath[0] = 0;
 
-  return Ms_Success;
+  return Msb_Success;
 }

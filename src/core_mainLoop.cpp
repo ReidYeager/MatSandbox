@@ -59,12 +59,12 @@ void HandleInput()
   if (LapisInputOnPressed(state.window.lapis, Lapis_Input_Button_5)) state.meshIndex = 4;
 }
 
-MsResult Render()
+MsbResult Render()
 {
   if (LapisWindowGetMinimized(state.window.lapis) || !LapisWindowGetVisible(state.window.lapis))
-    return Ms_Success;
+    return Msb_Success;
 
-  MS_ATTEMPT_OPAL(OpalRenderBegin(state.window.opal));
+  MSB_ATTEMPT_OPAL(OpalRenderBegin(state.window.opal));
 
   // Scene
   OpalRenderBeginRenderpass(state.sceneRenderpass, state.sceneFramebuffer);
@@ -76,31 +76,31 @@ MsResult Render()
 
   // Ui
   OpalRenderBeginRenderpass(state.uiRenderpass, state.uiFramebuffer);
-  MS_ATTEMPT(RenderUi());
+  MSB_ATTEMPT(RenderUi());
   OpalRenderEndRenderpass(state.uiRenderpass);
-  MS_ATTEMPT_OPAL(OpalRenderEnd());
+  MSB_ATTEMPT_OPAL(OpalRenderEnd());
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult UpdateSceneRenderComponents()
+MsbResult UpdateSceneRenderComponents()
 {
   if (state.sceneGuiExtentsPrevFrame.x <= 0 || state.sceneGuiExtentsPrevFrame.y <= 0)
   {
-    return Ms_Success;
+    return Msb_Success;
   }
 
   OpalExtent newExtents = { (uint32_t)state.sceneGuiExtentsPrevFrame.x, (uint32_t)state.sceneGuiExtentsPrevFrame.y, 1 };
 
   if (state.sceneImage->extents.width == newExtents.width && state.sceneImage->extents.height == newExtents.height)
   {
-    return Ms_Success;
+    return Msb_Success;
   }
 
 
-  MS_ATTEMPT_OPAL(OpalImageResize(state.sceneImage, newExtents));
-  MS_ATTEMPT_OPAL(OpalImageResize(state.depthImage, newExtents));
-  MS_ATTEMPT_OPAL(OpalFramebufferReinit(state.sceneFramebuffer));
+  MSB_ATTEMPT_OPAL(OpalImageResize(state.sceneImage, newExtents));
+  MSB_ATTEMPT_OPAL(OpalImageResize(state.depthImage, newExtents));
+  MSB_ATTEMPT_OPAL(OpalFramebufferReinit(state.sceneFramebuffer));
 
   state.globalInputValues.viewportExtents->width = newExtents.width;
   state.globalInputValues.viewportExtents->height = newExtents.height;
@@ -117,12 +117,12 @@ MsResult UpdateSceneRenderComponents()
   sceneImageInputInfo.index = 0;
   sceneImageInputInfo.type = Opal_Input_Type_Samped_Image;
   sceneImageInputInfo.value.image = state.sceneImage;
-  MS_ATTEMPT_OPAL(OpalInputSetUpdate(state.uiSceneImageInputSet, 1, &sceneImageInputInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetUpdate(state.uiSceneImageInputSet, 1, &sceneImageInputInfo));
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult MsUpdate()
+MsbResult MsUpdate()
 {
   const float microToSecond = 0.000001f;
   float deltaTime = 0.0f;
@@ -135,28 +135,28 @@ MsResult MsUpdate()
     deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - frameStart).count() * microToSecond;
     *state.globalInputValues.time += deltaTime;
 
-    MS_ATTEMPT_LAPIS(LapisWindowUpdate(state.window.lapis));
+    MSB_ATTEMPT_LAPIS(LapisWindowUpdate(state.window.lapis));
 
     if (state.serialLoadPath[0] != 0)
-      MS_ATTEMPT(MsSerializeLoad(state.serialLoadPath));
-    MS_ATTEMPT(MsCompileQueuedShaders());
-    MS_ATTEMPT(MsReimportQueuedImages());
+      MSB_ATTEMPT(MsSerializeLoad(state.serialLoadPath));
+    MSB_ATTEMPT(MsCompileQueuedShaders());
+    MSB_ATTEMPT(MsReimportQueuedImages());
 
     HandleInput();
 
-    MS_ATTEMPT(UpdateSceneRenderComponents());
-    MS_ATTEMPT(MsInputSetPushBuffers(&state.globalInputSet));
-    MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
-    MS_ATTEMPT(Render());
+    MSB_ATTEMPT(UpdateSceneRenderComponents());
+    MSB_ATTEMPT(MsInputSetPushBuffers(&state.globalInputSet));
+    MSB_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+    MSB_ATTEMPT(Render());
 
     if (state.serialLoadPath[0] != 0)
     {
-      MS_ATTEMPT(MsSerializeLoad(state.serialLoadPath));
+      MSB_ATTEMPT(MsSerializeLoad(state.serialLoadPath));
       state.serialLoadPath[0] = 0;
     }
 
     frameStart = frameEnd;
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
