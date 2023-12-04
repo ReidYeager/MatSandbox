@@ -4,6 +4,7 @@
 #include "src/application.h"
 
 uint32_t attemptDepth = 0;
+OpalInputLayout msbSingleImageLayout;
 
 MatSandboxState state;
 
@@ -14,5 +15,6 @@ int main(void)
   //MsShutdown();
 
   MsbApplication a;
-  return (int)a.Run();
+  a.Run();
+  return 0;
 }

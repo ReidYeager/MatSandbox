@@ -26,6 +26,7 @@ add_executable(MatSandbox
 
   src/material.cpp
   src/input_set.cpp
+  src/shader.cpp
 
   # App =====
   src/defines.h

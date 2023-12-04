@@ -4,6 +4,8 @@
 
 #include "src/defines.h"
 
+extern OpalInputLayout msbSingleImageLayout;
+
 struct MsbWindow
 {
   LapisWindow lapis;
@@ -30,7 +32,6 @@ struct MsbUiRenderResources
   OpalFramebuffer framebuffer;
   OpalRenderpass renderpass;
 
-  OpalInputLayout singleImageInputLayout;
   OpalInputSet inputSet;
 };
 

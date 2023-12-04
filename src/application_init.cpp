@@ -16,18 +16,33 @@ MsbResult CreateWindow(MsbWindow* window);
 MsbResult InitGraphics(MsbWindow* window);
 MsbResult InitSceneRenderResources(MsbSceneRenderResources* resources);
 MsbResult InitUiRenderResources(MsbUiRenderResources* resources, OpalImage sceneImage, OpalImage renderBuffer);
+MsbResult InitCustomMaterial(MsbMaterial* material, MsbInputSet* globalSet, MsbInputSet* customSet, OpalRenderpass renderpass);
 
 MsbResult MsbApplication::Init()
 {
   // Create window
+  // ===============
   MSB_ATTEMPT(CreateWindow(&window));
 
   // Initialize graphics
+  // ===============
   MSB_ATTEMPT(InitGraphics(&window));
+
+  // Single image input layout
+  OpalInputLayoutInitInfo singleImageInfo = { 0 };
+  OpalInputType type = Opal_Input_Type_Samped_Image;
+  singleImageInfo.count = 1;
+  singleImageInfo.pTypes = &type;
+  MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&msbSingleImageLayout, singleImageInfo));
+
+  // Framebuffers, renderpasses
   MSB_ATTEMPT(InitSceneRenderResources(&sceneRenderResources));
   MSB_ATTEMPT(InitUiRenderResources(&uiRenderResources, sceneRenderResources.sceneImage, window.renderBufferImage));
 
-  // Init global input set
+  // Initialize input sets
+  // ===============
+
+  // Global set
   const uint32_t bufferElementCount = 5;
   MsbBufferElementType pBufferElements[bufferElementCount] = {
     Msb_Buffer_Float,  // Time
@@ -41,13 +56,15 @@ MsbResult MsbApplication::Init()
   args[0].buffer.elementCount = bufferElementCount;
   args[0].buffer.pElementTypes = pBufferElements;
 
-  MSB_ATTEMPT(globalSet.Init(uiRenderResources.singleImageInputLayout, args));
+  MSB_ATTEMPT(globalSet.Init(args));
 
-  // Init custom input set
+  // Custom set
   std::vector<MsbInputArgumentInitInfo> emptyArgs;
-  MSB_ATTEMPT(customSet.Init(uiRenderResources.singleImageInputLayout, emptyArgs));
+  MSB_ATTEMPT(customSet.Init(emptyArgs));
 
   // Compile base material
+  // ===============
+  MSB_ATTEMPT(InitCustomMaterial(&customMaterial, &globalSet, &customSet, sceneRenderResources.renderpass));
 
   MSB_LOG("Init success\n");
   return Msb_Success;
@@ -74,7 +91,7 @@ MsbResult InitGraphics(MsbWindow* window)
   OpalInitInfo opalInfo = { 0 };
   opalInfo.windowPlatformInfo.hinstance = windowPlatformData.hinstance;
   opalInfo.windowPlatformInfo.hwnd = windowPlatformData.hwnd;
-  opalInfo.debug = false;
+  opalInfo.debug = true;
   OpalFormat vertexInputFormats[3] = { Opal_Format_RGB32, Opal_Format_RGB32, Opal_Format_RG32 };
   opalInfo.vertexStruct.count = 3;
   opalInfo.vertexStruct.pFormats = vertexInputFormats;
@@ -115,7 +132,7 @@ MsbResult InitSceneRenderResources(MsbSceneRenderResources* resources)
   const uint32_t sceneAttachmentCount = 2;
   OpalAttachmentInfo sceneAttachments[sceneAttachmentCount] = { 0 };
   sceneAttachments[0].clearValue.color = (OpalColorValue){ 0.5f, 0.5f, 0.5f, 1.0f };
-  sceneAttachments[0].format = Opal_Format_BGRA8;
+  sceneAttachments[0].format = Opal_Format_RGBA8;
   sceneAttachments[0].loadOp = Opal_Attachment_Op_Clear;
   sceneAttachments[0].shouldStore = true;
   sceneAttachments[0].usage = Opal_Attachment_Usage_Presented;
@@ -191,21 +208,46 @@ MsbResult InitUiRenderResources(MsbUiRenderResources* resources, OpalImage scene
   uiFbInfo.renderpass = resources->renderpass;
   MSB_ATTEMPT_OPAL(OpalFramebufferInit(&resources->framebuffer, uiFbInfo));
 
-  // Input set
+  return Msb_Success;
+}
+
+MsbResult InitCustomMaterial(MsbMaterial* material, MsbInputSet* globalSet, MsbInputSet* customSet, OpalRenderpass renderpass)
+{
+  MsbMaterialInitInfo initInfo;
+  initInfo.renderpass = renderpass;
+  initInfo.pInputSets.push_back(globalSet);
+  initInfo.pInputSets.push_back(customSet);
+
+  MsbShaderInitInfo shaderInfo;
+
+  // Vertex shader
   // ===============
-  OpalInputLayoutInitInfo uiLayoutInfo = { 0 };
-  OpalInputType type = Opal_Input_Type_Samped_Image;
-  uiLayoutInfo.count = 1;
-  uiLayoutInfo.pTypes = &type;
-  MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&resources->singleImageInputLayout, uiLayoutInfo));
+  uint32_t vertSourceSize = strlen(MATSANDBOX_VERT_DEFAULT_SOURCE);
+  char* pVertSource = LapisMemAllocZeroArray(char, vertSourceSize);
+  LapisMemCopy((char*)MATSANDBOX_VERT_DEFAULT_SOURCE, pVertSource, vertSourceSize);
 
-  OpalMaterialInputValue inputValue = { 0 };
-  inputValue.image = sceneImage;
+  shaderInfo.type = Msb_Shader_Vertex;
+  shaderInfo.sourceSize = vertSourceSize;
+  shaderInfo.pSource = pVertSource;
+  initInfo.pShaderInfos.push_back(shaderInfo);
 
-  OpalInputSetInitInfo uiSetInfo = { 0 };
-  uiSetInfo.layout = resources->singleImageInputLayout;
-  uiSetInfo.pInputValues = &inputValue;
-  MSB_ATTEMPT_OPAL(OpalInputSetInit(&resources->inputSet, uiSetInfo));
+  // Fragment shader
+  // ===============
+  uint32_t fragSourceSize = strlen(MATSANDBOX_FRAG_DEFAULT_SOURCE);
+  char* pFragSource = LapisMemAllocZeroArray(char, fragSourceSize);
+  LapisMemCopy((char*)MATSANDBOX_FRAG_DEFAULT_SOURCE, pFragSource, fragSourceSize);
+
+  shaderInfo.type = Msb_Shader_Fragment;
+  shaderInfo.sourceSize = fragSourceSize;
+  shaderInfo.pSource = pFragSource;
+  initInfo.pShaderInfos.push_back(shaderInfo);
+
+  // Create material
+  // ===============
+  MSB_ATTEMPT(material->Init(initInfo));
+
+  LapisMemFree(pVertSource);
+  LapisMemFree(pFragSource);
 
   return Msb_Success;
 }

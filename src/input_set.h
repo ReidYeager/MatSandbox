@@ -101,7 +101,6 @@ struct MsbInputArgumentInitInfo
 class MsbInputSet
 {
 private:
-  OpalInputLayout singleImageLayout;
   OpalInputLayout layout;
   OpalInputSet set;
 
@@ -111,8 +110,11 @@ private:
 public:
   MsbInputSet() { layout = OPAL_NULL_HANDLE; set = OPAL_NULL_HANDLE; }
 
-  MsbResult Init(OpalInputLayout singleImageLayout, std::vector<MsbInputArgumentInitInfo>& pInitInfo);
+  MsbResult Init(std::vector<MsbInputArgumentInitInfo>& pInitInfo);
   void Shutdown();
+
+  OpalInputLayout GetLayout() { return layout; };
+  OpalInputSet GetSet() { return set; };
 
   MsbResult UpdateLayoutAndSet();
   MsbResult PushBuffersData();

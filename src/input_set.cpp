@@ -79,10 +79,8 @@ MsbResult MsbLoadImageFile(const char* path, void** outImageData, Vec2U* outExte
 }
 #pragma endregion
 
-MsbResult MsbInputSet::Init(OpalInputLayout singleImageLayout, std::vector<MsbInputArgumentInitInfo>& pInitInfo)
+MsbResult MsbInputSet::Init(std::vector<MsbInputArgumentInitInfo>& pInitInfo)
 {
-  this->singleImageLayout = singleImageLayout;
-
   for (uint32_t i = 0; i < pInitInfo.size(); i++)
   {
     MSB_ATTEMPT(AddArgument(&pInitInfo[i]));
@@ -91,6 +89,7 @@ MsbResult MsbInputSet::Init(OpalInputLayout singleImageLayout, std::vector<MsbIn
   MSB_ATTEMPT(UpdateLayoutAndSet());
   MSB_ATTEMPT(PushBuffersData());
 
+  MSB_LOG("Input set init complete\n");
   return Msb_Success;
 }
 
@@ -121,7 +120,8 @@ MsbResult MsbInputSet::UpdateLayoutAndSet()
     OpalInputLayoutShutdown(&layout);
 
   uint32_t count = pArguments.size();
-  std::vector<OpalMaterialInputValue> pInputValues;
+  std::vector<OpalMaterialInputValue> pInputValues(count);
+  std::vector<OpalInputInfo> inputInfo(count);
 
   OpalInputLayoutInitInfo layoutInfo = { 0 };
   layoutInfo.count = count;
@@ -142,15 +142,21 @@ MsbResult MsbInputSet::UpdateLayoutAndSet()
     case Msb_Argument_Image: inValue.image = arg->data.image.opal; break;
     default: return Msb_Fail;
     }
-    pInputValues.push_back(inValue);
+    pInputValues[i] = inValue;
+
+    inputInfo[i].index = i;
+    inputInfo[i].type = MsbInputTypeToOpalInputType(arg->type);
+    inputInfo[i].value = inValue;
   }
 
-  MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&this->layout, layoutInfo));
+  MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&layout, layoutInfo));
 
   OpalInputSetInitInfo setInfo = { 0 };
   setInfo.layout = layout;
   setInfo.pInputValues = pInputValues.data();
-  MSB_ATTEMPT_OPAL(OpalInputSetInit(&this->set, setInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetInit(&set, setInfo));
+
+  MSB_ATTEMPT_OPAL(OpalInputSetUpdate(set, inputInfo.size(), inputInfo.data()));
 
   return Msb_Success;
 }
@@ -272,7 +278,7 @@ MsbResult MsbInputSet::InitImageArgument(MsbInputArgumentInitInfo* initInfo, Msb
   inputImage.image = iarg->opal;
 
   OpalInputSetInitInfo setInfo = { 0 };
-  setInfo.layout = singleImageLayout;
+  setInfo.layout = msbSingleImageLayout;
   setInfo.pInputValues = &inputImage;
   MSB_ATTEMPT_OPAL(OpalInputSetInit(&iarg->set, setInfo));
 

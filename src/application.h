@@ -4,6 +4,7 @@
 
 #include "src/definesNew.h"
 #include "src/input_set.h"
+#include "src/material.h"
 
 struct MsbApplication
 {
@@ -15,6 +16,7 @@ private:
 
   MsbInputSet globalSet;
   MsbInputSet customSet;
+  MsbMaterial customMaterial;
 
 public:
   MsbResult Run();
