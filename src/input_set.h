@@ -116,6 +116,8 @@ public:
   OpalInputLayout GetLayout() { return layout; };
   OpalInputSet GetSet() { return set; };
 
+  MsbInputArgument* GetArgument(uint32_t index) { return &pArguments[index]; }
+
   MsbResult UpdateLayoutAndSet();
   MsbResult PushBuffersData();
 

@@ -1,4 +1,6 @@
 
+#include "src/application.h"
+
 #include "src/common.h"
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -118,6 +120,24 @@ MsbResult LoadMesh(const char* path, OpalMesh* outMesh)
   meshInfo.indexCount = meshData.indices.size();
   meshInfo.pIndices = meshData.indices.data();
   MSB_ATTEMPT_OPAL(OpalMeshInit(outMesh, meshInfo));
+
+  return Msb_Success;
+}
+
+MsbResult MsbApplication::LoadMesh(char* path)
+{
+  MsMeshInfo meshData = {};
+  MSB_ATTEMPT(BuildMeshFromFile(path, &meshData));
+
+  OpalMeshInitInfo meshInfo = {};
+  meshInfo.vertexCount = meshData.verts.size();
+  meshInfo.pVertices = meshData.verts.data();
+  meshInfo.indexCount = meshData.indices.size();
+  meshInfo.pIndices = meshData.indices.data();
+  OpalMesh newMesh;
+  MSB_ATTEMPT_OPAL(OpalMeshInit(&newMesh, meshInfo));
+
+  pMeshes.push_back(newMesh);
 
   return Msb_Success;
 }

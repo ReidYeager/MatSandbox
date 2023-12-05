@@ -10,23 +10,15 @@ MsbResult MsbApplication::Run()
   return Msb_Success;
 }
 
-#undef CreateWindow
-
-MsbResult CreateWindow(MsbWindow* window);
-MsbResult InitGraphics(MsbWindow* window);
-MsbResult InitSceneRenderResources(MsbSceneRenderResources* resources);
-MsbResult InitUiRenderResources(MsbUiRenderResources* resources, OpalImage sceneImage, OpalImage renderBuffer);
-MsbResult InitCustomMaterial(MsbMaterial* material, MsbInputSet* globalSet, MsbInputSet* customSet, OpalRenderpass renderpass);
-
 MsbResult MsbApplication::Init()
 {
   // Create window
   // ===============
-  MSB_ATTEMPT(CreateWindow(&window));
+  MSB_ATTEMPT(InitWindow());
 
   // Initialize graphics
   // ===============
-  MSB_ATTEMPT(InitGraphics(&window));
+  MSB_ATTEMPT(InitGraphics());
 
   // Single image input layout
   OpalInputLayoutInitInfo singleImageInfo = { 0 };
@@ -36,8 +28,8 @@ MsbResult MsbApplication::Init()
   MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&msbSingleImageLayout, singleImageInfo));
 
   // Framebuffers, renderpasses
-  MSB_ATTEMPT(InitSceneRenderResources(&sceneRenderResources));
-  MSB_ATTEMPT(InitUiRenderResources(&uiRenderResources, sceneRenderResources.sceneImage, window.renderBufferImage));
+  MSB_ATTEMPT(InitSceneRenderResources());
+  MSB_ATTEMPT(InitUiRenderResources());
 
   // Initialize input sets
   // ===============
@@ -57,6 +49,7 @@ MsbResult MsbApplication::Init()
   args[0].buffer.pElementTypes = pBufferElements;
 
   MSB_ATTEMPT(globalSet.Init(args));
+  MsbInputArgumentBuffer* globalBuffer = &globalSet.GetArument(0)->data.buffer;
 
   // Custom set
   std::vector<MsbInputArgumentInitInfo> emptyArgs;
@@ -64,29 +57,51 @@ MsbResult MsbApplication::Init()
 
   // Compile base material
   // ===============
-  MSB_ATTEMPT(InitCustomMaterial(&customMaterial, &globalSet, &customSet, sceneRenderResources.renderpass));
+  MSB_ATTEMPT(InitCustomMaterial());
+
+  // Load meshes
+  // ===============
+  MSB_ATTEMPT(LoadMesh((char*)GAME_RESOURCE_PATH "models/Sphere.obj"));
+  MSB_ATTEMPT(LoadMesh((char*)GAME_RESOURCE_PATH "models/SphereSmooth.obj"));
+  MSB_ATTEMPT(LoadMesh((char*)GAME_RESOURCE_PATH "models/Cube.obj"));
+  MSB_ATTEMPT(LoadMesh((char*)GAME_RESOURCE_PATH "models/Shaderball.obj"));
+  MSB_ATTEMPT(LoadMesh((char*)GAME_RESOURCE_PATH "models/Cyborg_Weapon.obj"));
+
+  // Init camera
+  // ===============
+  uint32_t windowWidth, windowHeight;
+  LapisWindowGetExtents(window.lapis, &windowWidth, &windowHeight);
+  MsbBufferElement* gElements = globalBuffer->pElements;
+
+  camera.SetBufferPointers(gElements[2].data, gElements[3].data, gElements[4].data);
+  camera.SetProjection((float)windowWidth / (float)windowHeight);
+  camera.Update();
+
+  // Init Ui
+  // ===============
+  MSB_ATTEMPT(InitUi());
 
   MSB_LOG("Init success\n");
   return Msb_Success;
 }
 
-MsbResult CreateWindow(MsbWindow* window)
+MsbResult MsbApplication::InitWindow()
 {
   LapisWindowInitInfo lapisWindowInfo = {};
   lapisWindowInfo.fnPlatformInputCallback = NULL;
   lapisWindowInfo.fnResizeCallback = NULL;
   lapisWindowInfo.resizable = true;
-  lapisWindowInfo.extents = window->extents;
-  lapisWindowInfo.position = window->screenPosition;
-  lapisWindowInfo.title = window->title;
-  MSB_ATTEMPT_LAPIS(LapisWindowInit(lapisWindowInfo, &window->lapis));
+  lapisWindowInfo.extents = window.extents;
+  lapisWindowInfo.position = window.screenPosition;
+  lapisWindowInfo.title = window.title;
+  MSB_ATTEMPT_LAPIS(LapisWindowInit(lapisWindowInfo, &window.lapis));
 
   return Msb_Success;
 }
 
-MsbResult InitGraphics(MsbWindow* window)
+MsbResult MsbApplication::InitGraphics()
 {
-  LapisWindowPlatformData windowPlatformData = LapisWindowGetPlatformData(window->lapis);
+  LapisWindowPlatformData windowPlatformData = LapisWindowGetPlatformData(window.lapis);
 
   OpalInitInfo opalInfo = { 0 };
   opalInfo.windowPlatformInfo.hinstance = windowPlatformData.hinstance;
@@ -101,15 +116,15 @@ MsbResult InitGraphics(MsbWindow* window)
   OpalWindowInitInfo owInfo = { 0 };
   owInfo.platformInfo.hinstance = windowPlatformData.hinstance;
   owInfo.platformInfo.hwnd = windowPlatformData.hwnd;
-  owInfo.extents = window->extents;
-  MSB_ATTEMPT_OPAL(OpalWindowInit(&window->opal, owInfo));
+  owInfo.extents = window.extents;
+  MSB_ATTEMPT_OPAL(OpalWindowInit(&window.opal, owInfo));
 
-  OpalWindowGetBufferImage(window->opal, &window->renderBufferImage);
+  OpalWindowGetBufferImage(window.opal, &window.renderBufferImage);
 
   return Msb_Success;
 }
 
-MsbResult InitSceneRenderResources(MsbSceneRenderResources* resources)
+MsbResult MsbApplication::InitSceneRenderResources()
 {
   // Images
   // ===============
@@ -118,14 +133,14 @@ MsbResult InitSceneRenderResources(MsbSceneRenderResources* resources)
   sceneDepthImageInfo.format = Opal_Format_D24_S8;
   sceneDepthImageInfo.sampleType = Opal_Sample_Bilinear;
   sceneDepthImageInfo.usage = Opal_Image_Usage_Depth;
-  MSB_ATTEMPT_OPAL(OpalImageInit(&resources->depthImage, sceneDepthImageInfo));
+  MSB_ATTEMPT_OPAL(OpalImageInit(&sceneRenderResources.depthImage, sceneDepthImageInfo));
 
   OpalImageInitInfo sceneImageInfo = { 0 };
   sceneImageInfo.extent = { 256, 256, 1 };
   sceneImageInfo.format = Opal_Format_RGBA8;
   sceneImageInfo.sampleType = Opal_Sample_Bilinear;
   sceneImageInfo.usage = Opal_Image_Usage_Color | Opal_Image_Usage_Uniform;
-  MSB_ATTEMPT_OPAL(OpalImageInit(&resources->sceneImage, sceneImageInfo));
+  MSB_ATTEMPT_OPAL(OpalImageInit(&sceneRenderResources.sceneImage, sceneImageInfo));
 
   // Renderpass
   // ===============
@@ -158,21 +173,21 @@ MsbResult InitSceneRenderResources(MsbSceneRenderResources* resources)
   sceneRpInfo.pAttachments = sceneAttachments;
   sceneRpInfo.subpassCount = 1;
   sceneRpInfo.pSubpasses = &sceneSubpass;
-  MSB_ATTEMPT_OPAL(OpalRenderpassInit(&resources->renderpass, sceneRpInfo));
+  MSB_ATTEMPT_OPAL(OpalRenderpassInit(&sceneRenderResources.renderpass, sceneRpInfo));
 
   // Framebuffer
   // ===============
-  OpalImage sceneFramebufferImages[2] = { resources->sceneImage, resources->depthImage };
+  OpalImage sceneFramebufferImages[2] = { sceneRenderResources.sceneImage, sceneRenderResources.depthImage };
   OpalFramebufferInitInfo sceneFbInfo = { 0 };
   sceneFbInfo.imageCount = 2;
   sceneFbInfo.pImages = sceneFramebufferImages;
-  sceneFbInfo.renderpass = resources->renderpass;
-  MSB_ATTEMPT_OPAL(OpalFramebufferInit(&resources->framebuffer, sceneFbInfo));
+  sceneFbInfo.renderpass = sceneRenderResources.renderpass;
+  MSB_ATTEMPT_OPAL(OpalFramebufferInit(&sceneRenderResources.framebuffer, sceneFbInfo));
 
   return Msb_Success;
 }
 
-MsbResult InitUiRenderResources(MsbUiRenderResources* resources, OpalImage sceneImage, OpalImage renderBuffer)
+MsbResult MsbApplication::InitUiRenderResources()
 {
   // Renderpass
   // ===============
@@ -198,25 +213,25 @@ MsbResult InitUiRenderResources(MsbUiRenderResources* resources, OpalImage scene
   uiRpInfo.pAttachments = &uiAttachment;
   uiRpInfo.subpassCount = 1;
   uiRpInfo.pSubpasses = &uiSubpass;
-  MSB_ATTEMPT_OPAL(OpalRenderpassInit(&resources->renderpass, uiRpInfo));
+  MSB_ATTEMPT_OPAL(OpalRenderpassInit(&uiRenderResources.renderpass, uiRpInfo));
 
   // Framebuffer
   // ===============
   OpalFramebufferInitInfo uiFbInfo = { 0 };
   uiFbInfo.imageCount = 1;
-  uiFbInfo.pImages = &renderBuffer;
-  uiFbInfo.renderpass = resources->renderpass;
-  MSB_ATTEMPT_OPAL(OpalFramebufferInit(&resources->framebuffer, uiFbInfo));
+  uiFbInfo.pImages = &window.renderBufferImage;
+  uiFbInfo.renderpass = uiRenderResources.renderpass;
+  MSB_ATTEMPT_OPAL(OpalFramebufferInit(&uiRenderResources.framebuffer, uiFbInfo));
 
   return Msb_Success;
 }
 
-MsbResult InitCustomMaterial(MsbMaterial* material, MsbInputSet* globalSet, MsbInputSet* customSet, OpalRenderpass renderpass)
+MsbResult MsbApplication::InitCustomMaterial()
 {
   MsbMaterialInitInfo initInfo;
-  initInfo.renderpass = renderpass;
-  initInfo.pInputSets.push_back(globalSet);
-  initInfo.pInputSets.push_back(customSet);
+  initInfo.renderpass = sceneRenderResources.renderpass;
+  initInfo.pInputSets.push_back(&globalSet);
+  initInfo.pInputSets.push_back(&customSet);
 
   MsbShaderInitInfo shaderInfo;
 
@@ -244,10 +259,27 @@ MsbResult InitCustomMaterial(MsbMaterial* material, MsbInputSet* globalSet, MsbI
 
   // Create material
   // ===============
-  MSB_ATTEMPT(material->Init(initInfo));
+  MSB_ATTEMPT(customMaterial.Init(initInfo));
 
   LapisMemFree(pVertSource);
   LapisMemFree(pFragSource);
 
+  return Msb_Success;
+}
+
+MsbResult MsbApplication::InitUi()
+{
+  MsbUiInitInfo initInfo;
+  initInfo.hwnd = LapisWindowGetPlatformData(window.lapis).hwnd;
+  initInfo.vk.instance = oState.vk.instance;
+  initInfo.vk.device = oState.vk.device;
+  initInfo.vk.physcialDevice = oState.vk.gpu;
+  initInfo.vk.queueFamily = oState.vk.gpuInfo.queueIndexGraphics;
+  initInfo.vk.queue = oState.vk.queueGraphics;
+  initInfo.vk.descriptorPool = oState.vk.descriptorPool;
+  initInfo.vk.imageCount = window.opal->imageCount;
+  initInfo.vk.renderpass = uiRenderResources.renderpass->vk.renderpass;
+
+  MSB_ATTEMPT(ui.Init(initInfo));
   return Msb_Success;
 }

@@ -1,6 +1,9 @@
 
 #include "src/common.h"
 
+#include "src/definesNew.h"
+#include "src/ui.h"
+
 MsbResult ShowPreview();
 MsbResult ShowCode();
 MsbResult ShowSaveLoadModals();
@@ -211,5 +214,46 @@ MsbResult ShowCodeBlock(ShaderCodeInfo* codeInfo)
   }
 
   ImGui::PopID();
+  return Msb_Success;
+}
+
+// ===============
+// New ui
+// ===============
+
+MsbResult MsbUi::Init(MsbUiInitInfo initInfo)
+{
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  ImGui::StyleColorsDark();
+
+  ImGui_ImplWin32_Init(initInfo.hwnd);
+
+  ImGui_ImplVulkan_InitInfo imguiVulkanInfo = { 0 };
+  imguiVulkanInfo.Allocator = NULL;
+  imguiVulkanInfo.Instance = initInfo.vk.instance;
+  imguiVulkanInfo.Device = initInfo.vk.device;
+  imguiVulkanInfo.PhysicalDevice = initInfo.vk.physcialDevice;
+  imguiVulkanInfo.QueueFamily = initInfo.vk.queueFamily;
+  imguiVulkanInfo.Queue = initInfo.vk.queue;
+  imguiVulkanInfo.PipelineCache = VK_NULL_HANDLE;
+  imguiVulkanInfo.DescriptorPool = initInfo.vk.descriptorPool;
+  imguiVulkanInfo.Subpass = 0;
+  imguiVulkanInfo.MinImageCount = 2;
+  imguiVulkanInfo.ImageCount = initInfo.vk.imageCount;
+  imguiVulkanInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+  imguiVulkanInfo.CheckVkResultFn = NULL;
+  ImGui_ImplVulkan_Init(&imguiVulkanInfo, initInfo.vk.renderpass);
+
+  VkCommandBuffer cmd;
+  OpalBeginSingleUseCommand(oState.vk.transientCommandPool, &cmd);
+  ImGui_ImplVulkan_CreateFontsTexture();
+  OpalEndSingleUseCommand(oState.vk.transientCommandPool, oState.vk.queueTransfer, cmd);
+
+  MSB_LOG("Ui init complete\n");
+
   return Msb_Success;
 }
