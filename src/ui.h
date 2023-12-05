@@ -34,10 +34,10 @@ struct MsbUiInitInfo
 class MsbUi
 {
 private:
-  MsbUiRenderResources* resources;
-  std::vector<MsbInputSet*> inSets;
+  MsbUiRenderResources* m_resources;
+  std::vector<MsbInputSet*> m_inSets;
 
-  bool shouldShowFileModal = false;
+  bool m_shouldShowFileModal = false;
 
   enum FileModalOkFunctions
   {
@@ -52,7 +52,7 @@ private:
     std::string title;
     std::string path;
     FileModalOkFunctions okFunction;
-  } fileModalSettings;
+  } m_fileModalSettings;
 
 public:
   MsbResult Init(MsbUiInitInfo initInfo);

@@ -6,7 +6,7 @@ uint32_t MsbParseCompilationErrors(FILE* pipe);
 
 MsbResult MsbShader::Init(MsbShaderInitInfo initInfo)
 {
-  type = initInfo.type;
+  m_type = initInfo.type;
 
   MSB_ATTEMPT(UpdateSource(initInfo.sourceSize, initInfo.pSource));
   
@@ -16,8 +16,8 @@ MsbResult MsbShader::Init(MsbShaderInitInfo initInfo)
 
 void MsbShader::Shutdown()
 {
-  LapisMemFree(pCompiledSource);
-  OpalShaderShutdown(&opal);
+  LapisMemFree(m_compiledSource);
+  OpalShaderShutdown(&m_opal);
 }
 
 MsbResult MsbShader::UpdateSource(uint32_t size, char* pPlainTextSource)
@@ -41,11 +41,11 @@ MsbResult MsbShader::Compile(uint32_t size, char* pSource)
 
   // Build compilation command
   // ===============
-  switch (type)
+  switch (m_type)
   {
   case Msb_Shader_Vertex: LapisMemCopy((char*)"vert", extension, extensionMaxLength); break;
   case Msb_Shader_Fragment: LapisMemCopy((char*)"frag", extension, extensionMaxLength); break;
-  default: MSB_ERR("Attempting to compile unsupported shader type : %u\n", type); return Msb_Fail;
+  default: MSB_ERR("Attempting to compile unsupported shader type : %u\n", m_type); return Msb_Fail;
   }
 
   sprintf_s(tmpFileName, nameMaxLength, "NewShaderSource.%s", extension);
@@ -81,13 +81,13 @@ MsbResult MsbShader::Compile(uint32_t size, char* pSource)
   fopen_s(&compiledFile, tmpCompiledFileName, "rb");
   // Get size
   fseek(compiledFile, 0L, SEEK_END);
-  compiledSourceSize = (uint32_t)ftell(compiledFile);
+  m_compiledSourceSize = (uint32_t)ftell(compiledFile);
   rewind(compiledFile);
   // Read source
-  if (pCompiledSource != NULL)
-    LapisMemFree(pCompiledSource);
-  pCompiledSource = LapisMemAllocZeroArray(char, compiledSourceSize);
-  fread(pCompiledSource, 1, (size_t)compiledSourceSize, compiledFile);
+  if (m_compiledSource != NULL)
+    LapisMemFree(m_compiledSource);
+  m_compiledSource = LapisMemAllocZeroArray(char, m_compiledSourceSize);
+  fread(m_compiledSource, 1, (size_t)m_compiledSourceSize, compiledFile);
   // Close
   fclose(compiledFile);
 
@@ -112,21 +112,21 @@ uint32_t MsbParseCompilationErrors(FILE* pipe)
 
 MsbResult MsbShader::Update()
 {
-  if (opal != OPAL_NULL_HANDLE)
-    OpalShaderShutdown(&opal);
+  if (m_opal != OPAL_NULL_HANDLE)
+    OpalShaderShutdown(&m_opal);
 
   OpalShaderInitInfo initInfo = { 0 };
-  initInfo.pSource = pCompiledSource;
-  initInfo.size = compiledSourceSize;
+  initInfo.pSource = m_compiledSource;
+  initInfo.size = m_compiledSourceSize;
 
-  switch (type)
+  switch (m_type)
   {
   case Msb_Shader_Vertex: initInfo.type = Opal_Shader_Vertex; break;
   case Msb_Shader_Fragment: initInfo.type = Opal_Shader_Fragment; break;
-  default: MSB_ERR("Attempting to create shader with unsupported type : %u\n", type); return Msb_Fail;
+  default: MSB_ERR("Attempting to create shader with unsupported type : %u\n", m_type); return Msb_Fail;
   }
 
-  MSB_ATTEMPT_OPAL(OpalShaderInit(&opal, initInfo));
+  MSB_ATTEMPT_OPAL(OpalShaderInit(&m_opal, initInfo));
 
   return Msb_Success;
 }

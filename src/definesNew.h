@@ -14,7 +14,7 @@ struct MsbWindow
   OpalImage renderBufferImage;
 
   Vec2U extents = { 1280, 720 };
-  Vec2I screenPosition = { 50, 50 };
+  Vec2I screenPosition = { 1700, 50 };
   const char* title = "Material sandbox";
 };
 

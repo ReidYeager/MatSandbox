@@ -4,8 +4,8 @@
 
 MsbResult MsbMaterial::Init(MsbMaterialInitInfo initInfo)
 {
-  renderpass = initInfo.renderpass;
-  subpassIndex = initInfo.subpassIndex;
+  m_renderpass = initInfo.renderpass;
+  m_subpassIndex = initInfo.subpassIndex;
 
   std::vector<OpalShader> pShaders;
   std::vector<OpalInputLayout> pLayouts;
@@ -17,11 +17,11 @@ MsbResult MsbMaterial::Init(MsbMaterialInitInfo initInfo)
     MsbShader newShader;
     MSB_ATTEMPT(newShader.Init(initInfo.pShaderInfos[i]));
 
-    this->pShaders.push_back(newShader);
+    this->m_shaders.push_back(newShader);
     pShaders.push_back(newShader.GetOpal());
   }
 
-  pInputSets = initInfo.pInputSets;
+  m_inputSets = initInfo.pInputSets;
   for (uint32_t i = 0; i < initInfo.pInputSets.size(); i++)
   {
     pLayouts.push_back(initInfo.pInputSets[i]->GetLayout());
@@ -35,9 +35,9 @@ MsbResult MsbMaterial::Init(MsbMaterialInitInfo initInfo)
   matInfo.shaderCount = pShaders.size();
   matInfo.pShaders = pShaders.data();
   matInfo.pushConstantSize = 0;
-  matInfo.renderpass = renderpass;
-  matInfo.subpassIndex = subpassIndex;
-  MSB_ATTEMPT_OPAL(OpalMaterialInit(&opal, matInfo));
+  matInfo.renderpass = m_renderpass;
+  matInfo.subpassIndex = m_subpassIndex;
+  MSB_ATTEMPT_OPAL(OpalMaterialInit(&m_opal, matInfo));
 
   MSB_LOG("Material init success\n");
 

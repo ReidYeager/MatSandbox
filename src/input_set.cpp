@@ -81,7 +81,7 @@ MsbResult MsbLoadImageFile(const char* path, void** outImageData, Vec2U* outExte
 
 MsbResult MsbInputSet::Init(std::string name, std::vector<MsbInputArgumentInitInfo>& pInitInfo)
 {
-  this->name = name;
+  this->m_name = name;
 
   for (uint32_t i = 0; i < pInitInfo.size(); i++)
   {
@@ -97,31 +97,31 @@ MsbResult MsbInputSet::Init(std::string name, std::vector<MsbInputArgumentInitIn
 
 void MsbInputSet::Shutdown()
 {
-  if (set != OPAL_NULL_HANDLE)
-    OpalInputSetShutdown(&set);
-  if (layout != OPAL_NULL_HANDLE)
-    OpalInputLayoutShutdown(&layout);
+  if (m_set != OPAL_NULL_HANDLE)
+    OpalInputSetShutdown(&m_set);
+  if (m_layout != OPAL_NULL_HANDLE)
+    OpalInputLayoutShutdown(&m_layout);
 
-  for (uint32_t i = 0; i < pArguments.size(); i++)
+  for (uint32_t i = 0; i < m_arguments.size(); i++)
   {
-    switch (pArguments[i].type)
+    switch (m_arguments[i].type)
     {
-    case Msb_Argument_Buffer: ShutdownBufferArgument(&pArguments[i]); break;
-    case Msb_Argument_Image: ShutdownImageArgument(&pArguments[i]); break;
+    case Msb_Argument_Buffer: ShutdownBufferArgument(&m_arguments[i]); break;
+    case Msb_Argument_Image: ShutdownImageArgument(&m_arguments[i]); break;
     default: continue;
     }
   }
-  pArguments.clear();
+  m_arguments.clear();
 }
 
 MsbResult MsbInputSet::UpdateLayoutAndSet()
 {
-  if (set != OPAL_NULL_HANDLE)
-    OpalInputSetShutdown(&set);
-  if (layout != OPAL_NULL_HANDLE)
-    OpalInputLayoutShutdown(&layout);
+  if (m_set != OPAL_NULL_HANDLE)
+    OpalInputSetShutdown(&m_set);
+  if (m_layout != OPAL_NULL_HANDLE)
+    OpalInputLayoutShutdown(&m_layout);
 
-  uint32_t count = pArguments.size();
+  uint32_t count = m_arguments.size();
   std::vector<OpalMaterialInputValue> pInputValues(count);
   std::vector<OpalInputInfo> inputInfo(count);
 
@@ -131,7 +131,7 @@ MsbResult MsbInputSet::UpdateLayoutAndSet()
 
   for (uint32_t i = 0; i < count; i++)
   {
-    MsbInputArgument* arg = &pArguments[i];
+    MsbInputArgument* arg = &m_arguments[i];
 
     // Add to input layout
     layoutInfo.pTypes[i] = MsbInputTypeToOpalInputType(arg->type);
@@ -151,26 +151,26 @@ MsbResult MsbInputSet::UpdateLayoutAndSet()
     inputInfo[i].value = inValue;
   }
 
-  MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&layout, layoutInfo));
+  MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&m_layout, layoutInfo));
 
   OpalInputSetInitInfo setInfo = { 0 };
-  setInfo.layout = layout;
+  setInfo.layout = m_layout;
   setInfo.pInputValues = pInputValues.data();
-  MSB_ATTEMPT_OPAL(OpalInputSetInit(&set, setInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetInit(&m_set, setInfo));
 
-  MSB_ATTEMPT_OPAL(OpalInputSetUpdate(set, inputInfo.size(), inputInfo.data()));
+  MSB_ATTEMPT_OPAL(OpalInputSetUpdate(m_set, inputInfo.size(), inputInfo.data()));
 
   return Msb_Success;
 }
 
 MsbResult MsbInputSet::PushBuffersData()
 {
-  for (uint32_t i = 0; i < pArguments.size(); i++)
+  for (uint32_t i = 0; i < m_arguments.size(); i++)
   {
-    if (pArguments[i].type != Msb_Argument_Buffer)
+    if (m_arguments[i].type != Msb_Argument_Buffer)
       continue;
 
-    MsbInputArgumentBuffer* barg = &pArguments[i].data.buffer;
+    MsbInputArgumentBuffer* barg = &m_arguments[i].data.buffer;
 
     uint32_t offset = 0, elementSize = 0;
     for (uint32_t j = 0; j < barg->elementCount; j++)
@@ -200,10 +200,10 @@ MsbResult MsbInputSet::AddArgument(MsbInputArgumentInitInfo* initInfo)
   default: MSB_ERR("Attempted addition of invalid input argument type : %u\n", initInfo->type); return Msb_Fail;
   }
 
-  newArg.id = nextArgumentId++;
+  newArg.id = m_nextArgumentId++;
   newArg.name = "New argument";
 
-  pArguments.push_back(newArg);
+  m_arguments.push_back(newArg);
 
   return Msb_Success;
 }
@@ -295,7 +295,7 @@ MsbResult MsbInputSet::InitImageArgument(MsbInputArgumentInitInfo* initInfo, Msb
 // ===============
 MsbResult MsbInputSet::RemoveArgument(uint32_t index)
 {
-  MsbInputArgument* arg = &pArguments[index];
+  MsbInputArgument* arg = &m_arguments[index];
 
   switch (arg->type)
   {
@@ -304,11 +304,11 @@ MsbResult MsbInputSet::RemoveArgument(uint32_t index)
   default: return Msb_Fail;
   }
 
-  for (uint32_t i = index; i < pArguments.size() - 1; i++)
+  for (uint32_t i = index; i < m_arguments.size() - 1; i++)
   {
-    pArguments[i] = pArguments[i + 1];
+    m_arguments[i] = m_arguments[i + 1];
   }
-  pArguments.pop_back();
+  m_arguments.pop_back();
 
   return Msb_Success;
 }

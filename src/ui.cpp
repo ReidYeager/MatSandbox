@@ -233,8 +233,8 @@ void MsbShowBufferElement(MsbBufferElement* element);
 
 MsbResult MsbUi::Init(MsbUiInitInfo initInfo)
 {
-  resources = initInfo.resources;
-  inSets = initInfo.inSets;
+  m_resources = initInfo.resources;
+  m_inSets = initInfo.inSets;
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -292,7 +292,7 @@ MsbResult MsbUi::Render()
 
 MsbResult MsbUi::StartFrame()
 {
-  OpalRenderBeginRenderpass(resources->renderpass, resources->framebuffer);
+  OpalRenderBeginRenderpass(m_resources->renderpass, m_resources->framebuffer);
 
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplWin32_NewFrame();
@@ -332,7 +332,7 @@ MsbResult MsbUi::EndFrame()
   ImDrawData* drawData = ImGui::GetDrawData();
   ImGui_ImplVulkan_RenderDrawData(drawData, OpalRenderGetCommandBuffer());
 
-  OpalRenderEndRenderpass(resources->renderpass);
+  OpalRenderEndRenderpass(m_resources->renderpass);
 
   return Msb_Success;
 }
@@ -381,10 +381,10 @@ MsbResult MsbUi::BuildArguments()
 
   // Input sets
   // ===============
-  uint32_t setCount = inSets.size();
+  uint32_t setCount = m_inSets.size();
   for (uint32_t i = 0; i < setCount; i++)
   {
-    MsbInputSet* set = inSets[i];
+    MsbInputSet* set = m_inSets[i];
     if (!ImGui::CollapsingHeader(set->GetName().c_str(), ImGuiTreeNodeFlags_DefaultOpen))
       continue;
 
@@ -594,23 +594,23 @@ void MsbShowBufferElement(MsbBufferElement* element)
 
   switch (element->type)
   {
-  case Ms_Buffer_Int:     ImGui::DragInt    (element->name.c_str(), (int*  )element->data                 ); break;
-  case Ms_Buffer_Int2:    ImGui::DragInt2   (element->name.c_str(), (int*  )element->data                 ); break;
-  case Ms_Buffer_Int3:    ImGui::DragInt3   (element->name.c_str(), (int*  )element->data                 ); break;
-  case Ms_Buffer_Int4:    ImGui::DragInt4   (element->name.c_str(), (int*  )element->data                 ); break;
-  case Ms_Buffer_Uint:    ImGui::DragScalar (element->name.c_str(), ImGuiDataType_U32,    element->data   ); break;
-  case Ms_Buffer_Uint2:   ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32,    element->data, 2); break;
-  case Ms_Buffer_Uint3:   ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32,    element->data, 3); break;
-  case Ms_Buffer_Uint4:   ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32,    element->data, 4); break;
-  case Ms_Buffer_Float:   ImGui::DragFloat  (element->name.c_str(), (float*)element->data, 0.01f          ); break;
-  case Ms_Buffer_Float2:  ImGui::DragFloat2 (element->name.c_str(), (float*)element->data, 0.01f          ); break;
-  case Ms_Buffer_Float3:  ImGui::DragFloat3 (element->name.c_str(), (float*)element->data, 0.01f          ); break;
-  case Ms_Buffer_Float4:  ImGui::DragFloat4 (element->name.c_str(), (float*)element->data, 0.01f          ); break;
-  case Ms_Buffer_Double:  ImGui::DragScalar (element->name.c_str(), ImGuiDataType_Double, element->data   ); break;
-  case Ms_Buffer_Double2: ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 2); break;
-  case Ms_Buffer_Double3: ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 3); break;
-  case Ms_Buffer_Double4: ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 4); break;
-  case Ms_Buffer_Mat4:
+  case Msb_Buffer_Int:     ImGui::DragInt    (element->name.c_str(), (int*  )element->data                 ); break;
+  case Msb_Buffer_Int2:    ImGui::DragInt2   (element->name.c_str(), (int*  )element->data                 ); break;
+  case Msb_Buffer_Int3:    ImGui::DragInt3   (element->name.c_str(), (int*  )element->data                 ); break;
+  case Msb_Buffer_Int4:    ImGui::DragInt4   (element->name.c_str(), (int*  )element->data                 ); break;
+  case Msb_Buffer_Uint:    ImGui::DragScalar (element->name.c_str(), ImGuiDataType_U32,    element->data   ); break;
+  case Msb_Buffer_Uint2:   ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32,    element->data, 2); break;
+  case Msb_Buffer_Uint3:   ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32,    element->data, 3); break;
+  case Msb_Buffer_Uint4:   ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_U32,    element->data, 4); break;
+  case Msb_Buffer_Float:   ImGui::DragFloat  (element->name.c_str(), (float*)element->data, 0.01f          ); break;
+  case Msb_Buffer_Float2:  ImGui::DragFloat2 (element->name.c_str(), (float*)element->data, 0.01f          ); break;
+  case Msb_Buffer_Float3:  ImGui::DragFloat3 (element->name.c_str(), (float*)element->data, 0.01f          ); break;
+  case Msb_Buffer_Float4:  ImGui::DragFloat4 (element->name.c_str(), (float*)element->data, 0.01f          ); break;
+  case Msb_Buffer_Double:  ImGui::DragScalar (element->name.c_str(), ImGuiDataType_Double, element->data   ); break;
+  case Msb_Buffer_Double2: ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 2); break;
+  case Msb_Buffer_Double3: ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 3); break;
+  case Msb_Buffer_Double4: ImGui::DragScalarN(element->name.c_str(), ImGuiDataType_Double, element->data, 4); break;
+  case Msb_Buffer_Mat4:
   {
     static char titleBuffer[128];
     Mat4* mat = (Mat4*)element->data;

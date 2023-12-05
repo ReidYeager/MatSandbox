@@ -20,14 +20,13 @@ struct MsbMaterialInitInfo
 class MsbMaterial
 {
 private:
-  OpalMaterial opal;
-  MsbInputSet inputSet;
+  OpalMaterial m_opal;
 
-  OpalRenderpass renderpass;
-  uint32_t subpassIndex;
+  OpalRenderpass m_renderpass;
+  uint32_t m_subpassIndex;
 
-  std::vector<MsbShader> pShaders;
-  std::vector<MsbInputSet*> pInputSets;
+  std::vector<MsbShader> m_shaders;
+  std::vector<MsbInputSet*> m_inputSets;
 
 public:
   MsbResult Init(MsbMaterialInitInfo initInfo);

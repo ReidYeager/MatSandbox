@@ -13,26 +13,22 @@ extern void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 struct MsbApplication
 {
 private:
-  MsbWindow window;
+  MsbWindow m_window;
 
-  MsbSceneRenderResources sceneRenderResources;
-  MsbUiRenderResources uiRenderResources;
+  MsbSceneRenderResources m_sceneRenderResources;
+  MsbUiRenderResources m_uiRenderResources;
 
-  MsbInputSet globalSet;
-  MsbInputArgumentBuffer* globalBuffer;
-  MsbInputSet customSet;
-  MsbMaterial customMaterial;
+  MsbInputSet m_globalSet;
+  MsbInputArgumentBuffer* m_globalBuffer;
+  MsbInputSet m_customSet;
+  MsbMaterial m_customMaterial;
 
-  std::vector<OpalMesh> pMeshes;
-  MsbCamera camera;
+  std::vector<OpalMesh> m_meshes;
+  MsbCamera m_camera;
 
-  MsbUi ui;
+  MsbUi m_ui;
 
-  struct
-  {
-    float delta;
-    float realSinceStart;
-  } time;
+  float m_deltaTime;
 
 public:
   MsbResult Run();
@@ -56,11 +52,8 @@ private:
   MsbResult Update();
 
   void UpdateTime();
-  MsbResult UpdateGlobalBuffer();
+  MsbResult ResizeUiRenderResources();
 
-  MsbResult Resize(Vec2U newExtents);
-  MsbResult RenderScene();
-  MsbResult RenderUi();
   MsbResult HandleHidInput();
 
   // Shutdown

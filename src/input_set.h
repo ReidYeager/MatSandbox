@@ -123,25 +123,25 @@ struct MsbInputArgumentInitInfo
 class MsbInputSet
 {
 private:
-  OpalInputLayout layout;
-  OpalInputSet set;
+  OpalInputLayout m_layout;
+  OpalInputSet m_set;
 
-  std::string name;
-  uint32_t nextArgumentId = 0;
-  std::vector<MsbInputArgument> pArguments;
+  std::string m_name;
+  uint32_t m_nextArgumentId = 0;
+  std::vector<MsbInputArgument> m_arguments;
 
 public:
-  MsbInputSet() { layout = OPAL_NULL_HANDLE; set = OPAL_NULL_HANDLE; }
+  MsbInputSet() { m_layout = OPAL_NULL_HANDLE; m_set = OPAL_NULL_HANDLE; }
 
   MsbResult Init(std::string name, std::vector<MsbInputArgumentInitInfo>& pInitInfo);
   void Shutdown();
 
-  std::string GetName() { return name; }
-  OpalInputLayout GetLayout() { return layout; }
-  OpalInputSet GetSet() { return set; };
+  std::string GetName() { return m_name; }
+  OpalInputLayout GetLayout() { return m_layout; }
+  OpalInputSet GetSet() { return m_set; };
 
-  uint32_t GetArgumentCount() { return pArguments.size(); }
-  MsbInputArgument* GetArgument(uint32_t index) { return &pArguments[index]; }
+  uint32_t GetArgumentCount() { return m_arguments.size(); }
+  MsbInputArgument* GetArgument(uint32_t index) { return &m_arguments[index]; }
 
   MsbResult UpdateLayoutAndSet();
   MsbResult PushBuffersData();

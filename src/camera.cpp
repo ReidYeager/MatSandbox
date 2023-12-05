@@ -19,14 +19,14 @@ MsbResult UpdateCamera()
 
 void MsbCamera::SetBufferPointers(void* inViewMatrix, void* inProjMatrix, void* inFwdVector)
 {
-  viewMatrix = (Mat4*)inViewMatrix;
-  projectionMatrix = (Mat4*)inProjMatrix;
-  forwardVector = (Vec3*)inFwdVector;
+  m_viewMatrix = (Mat4*)inViewMatrix;
+  m_projectionMatrix = (Mat4*)inProjMatrix;
+  m_forwardVector = (Vec3*)inFwdVector;
 }
 
 void MsbCamera::SetProjection(float screenRatio)
 {
-  *projectionMatrix = ProjectionPerspectiveExtended(
+  *m_projectionMatrix = ProjectionPerspectiveExtended(
     screenRatio,
     1.0f,    // 1:1 guaranteed ratio
     90.0f,   // VFov
@@ -38,11 +38,11 @@ MsbResult MsbCamera::Update()
 {
   Quaternion rotationQuat = QuaternionFromEuler(state.camera.transform.rotation);
 
-  *forwardVector = QuaternionMultiplyVec3(rotationQuat, { 0.0f, 0.0f, -1.0f });
+  *m_forwardVector = QuaternionMultiplyVec3(rotationQuat, { 0.0f, 0.0f, -1.0f });
 
-  transform.position = QuaternionMultiplyVec3(rotationQuat, { 0.0f, 0.0f, armLength });
-  transform.position = Vec3AddVec3(state.camera.transform.position, state.camera.focusPosition);
-  *viewMatrix = Mat4Invert(TransformToMat4(state.camera.transform));
+  m_transform.position = QuaternionMultiplyVec3(rotationQuat, { 0.0f, 0.0f, m_armLength });
+  m_transform.position = Vec3AddVec3(state.camera.transform.position, state.camera.focusPosition);
+  *m_viewMatrix = Mat4Invert(TransformToMat4(state.camera.transform));
 
   return Msb_Success;
 }

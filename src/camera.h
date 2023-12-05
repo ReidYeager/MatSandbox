@@ -7,12 +7,12 @@
 class MsbCamera
 {
 private:
-  Mat4* viewMatrix;
-  Mat4* projectionMatrix;
-  Vec3* forwardVector;
+  Mat4* m_viewMatrix;
+  Mat4* m_projectionMatrix;
+  Vec3* m_forwardVector;
 
-  float armLength = 2.0f;
-  Transform transform;
+  float m_armLength = 2.0f;
+  Transform m_transform;
 
 public:
   void SetBufferPointers(void* viewMatrix, void* projMatrix, void* fwdVector);

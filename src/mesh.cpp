@@ -137,7 +137,7 @@ MsbResult MsbApplication::LoadMesh(char* path)
   OpalMesh newMesh;
   MSB_ATTEMPT_OPAL(OpalMeshInit(&newMesh, meshInfo));
 
-  pMeshes.push_back(newMesh);
+  m_meshes.push_back(newMesh);
 
   return Msb_Success;
 }

@@ -5,10 +5,15 @@
 
 MsbResult MsbApplication::Update()
 {
-  while (!LapisWindowGetShouldClose(window.lapis))
+  while (!LapisWindowGetShouldClose(m_window.lapis))
   {
     UpdateTime();
-    LapisWindowUpdate(window.lapis);
+    LapisWindowUpdate(m_window.lapis);
+
+    if (LapisWindowGetResized(m_window.lapis))
+    {
+      MSB_ATTEMPT(ResizeUiRenderResources());
+    }
 
     // Input
     MSB_ATTEMPT(HandleHidInput());
@@ -18,14 +23,17 @@ MsbResult MsbApplication::Update()
     // Re-create material
 
     // Update buffer data
-    MSB_ATTEMPT(globalSet.PushBuffersData());
-    MSB_ATTEMPT(customSet.PushBuffersData());
+    MSB_ATTEMPT(m_globalSet.PushBuffersData());
+    MSB_ATTEMPT(m_customSet.PushBuffersData());
 
     // Render
-    MSB_ATTEMPT_OPAL(OpalRenderBegin(window.opal));
+    if (LapisWindowGetMinimized(m_window.lapis) || !LapisWindowGetVisible(m_window.lapis))
+      continue;
+
+    MSB_ATTEMPT_OPAL(OpalRenderBegin(m_window.opal));
 
     //MSB_ATTEMPT(RenderScene());
-    MSB_ATTEMPT(ui.Render());
+    MSB_ATTEMPT(m_ui.Render());
 
     MSB_ATTEMPT_OPAL(OpalRenderEnd());
 
@@ -37,27 +45,27 @@ MsbResult MsbApplication::Update()
 void MsbApplication::UpdateTime()
 {
   static const float microToSecond = 0.000001f;
-  static auto appStart = std::chrono::steady_clock::now();
   static auto frameStart = std::chrono::steady_clock::now();
   static auto frameEnd = std::chrono::steady_clock::now();
 
   frameEnd = std::chrono::steady_clock::now();
-  time.delta = std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - frameStart).count() * microToSecond;
-  time.realSinceStart = std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - appStart).count() * microToSecond;
+  m_deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - frameStart).count() * microToSecond;
+  frameStart = frameEnd;
+
+  *(float*)m_globalBuffer->pElements[0].data += m_deltaTime;
 }
 
-MsbResult MsbApplication::Resize(Vec2U newExtents)
+MsbResult MsbApplication::ResizeUiRenderResources()
 {
-  return Msb_Success;
-}
+  uint32_t width, height;
+  LapisWindowGetExtents(m_window.lapis, &width, &height);
 
-MsbResult MsbApplication::RenderScene()
-{
-  return Msb_Success;
-}
+  if (LapisWindowGetMinimized(m_window.lapis) || width == 0 || height == 0)
+    return Msb_Success;
 
-MsbResult MsbApplication::RenderUi()
-{
+  MSB_ATTEMPT_OPAL(OpalWindowReinit(m_window.opal));
+  MSB_ATTEMPT_OPAL(OpalFramebufferReinit(m_uiRenderResources.framebuffer));
+
   return Msb_Success;
 }
 
