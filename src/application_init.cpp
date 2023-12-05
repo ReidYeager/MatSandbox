@@ -48,12 +48,12 @@ MsbResult MsbApplication::Init()
   args[0].buffer.elementCount = bufferElementCount;
   args[0].buffer.pElementTypes = pBufferElements;
 
-  MSB_ATTEMPT(globalSet.Init(args));
-  MsbInputArgumentBuffer* globalBuffer = &globalSet.GetArument(0)->data.buffer;
+  MSB_ATTEMPT(globalSet.Init("Global set", args));
+  MsbInputArgumentBuffer* globalBuffer = &globalSet.GetArgument(0)->data.buffer;
 
   // Custom set
   std::vector<MsbInputArgumentInitInfo> emptyArgs;
-  MSB_ATTEMPT(customSet.Init(emptyArgs));
+  MSB_ATTEMPT(customSet.Init("Custom set", emptyArgs));
 
   // Compile base material
   // ===============
@@ -88,7 +88,7 @@ MsbResult MsbApplication::Init()
 MsbResult MsbApplication::InitWindow()
 {
   LapisWindowInitInfo lapisWindowInfo = {};
-  lapisWindowInfo.fnPlatformInputCallback = NULL;
+  lapisWindowInfo.fnPlatformInputCallback = LapisInputCallback;
   lapisWindowInfo.fnResizeCallback = NULL;
   lapisWindowInfo.resizable = true;
   lapisWindowInfo.extents = window.extents;
@@ -271,6 +271,9 @@ MsbResult MsbApplication::InitUi()
 {
   MsbUiInitInfo initInfo;
   initInfo.hwnd = LapisWindowGetPlatformData(window.lapis).hwnd;
+  initInfo.resources = &uiRenderResources;
+  initInfo.inSets.push_back(&globalSet);
+  initInfo.inSets.push_back(&customSet);
   initInfo.vk.instance = oState.vk.instance;
   initInfo.vk.device = oState.vk.device;
   initInfo.vk.physcialDevice = oState.vk.gpu;

@@ -79,8 +79,10 @@ MsbResult MsbLoadImageFile(const char* path, void** outImageData, Vec2U* outExte
 }
 #pragma endregion
 
-MsbResult MsbInputSet::Init(std::vector<MsbInputArgumentInitInfo>& pInitInfo)
+MsbResult MsbInputSet::Init(std::string name, std::vector<MsbInputArgumentInitInfo>& pInitInfo)
 {
+  this->name = name;
+
   for (uint32_t i = 0; i < pInitInfo.size(); i++)
   {
     MSB_ATTEMPT(AddArgument(&pInitInfo[i]));
@@ -220,8 +222,11 @@ MsbResult MsbInputSet::InitBufferArgument(MsbInputArgumentInitInfo* initInfo, Ms
     barg->size = MsbBufferOffsetToBaseAlignment(barg->size, initInfo->buffer.pElementTypes[i]);
     barg->size += elementSize;
 
+    char nameBuffer[32];
+    sprintf(nameBuffer, "Element %u : %s", i, MsbBufferElementTypeNames[initInfo->buffer.pElementTypes[i]]);
+
     barg->pElements[i].type = initInfo->buffer.pElementTypes[i];
-    barg->pElements[i].name = "test";
+    barg->pElements[i].name = std::string(nameBuffer);
     barg->pElements[i].data = LapisMemAllocZero(elementSize);
   }
 

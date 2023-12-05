@@ -1,5 +1,6 @@
 
 #include "src/common.h"
+#include "src/application.h"
 
 MsbResult InitWindow();
 MsbResult InitSceneRenderResources();
@@ -9,12 +10,12 @@ MsbResult InitMaterial();
 MsbResult InitMeshes();
 MsbResult InitImgui();
 
-void ImguiVkResultCheck(VkResult error) {}
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
-}
+//void ImguiVkResultCheck(VkResult error) {}
+//extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+//void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+//{
+//  ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+//}
 
 void WindowResizeCallback(LapisWindow window, uint32_t width, uint32_t height)
 {
@@ -315,7 +316,7 @@ MsbResult InitImgui()
   imguiVulkanInfo.MinImageCount = 2;
   imguiVulkanInfo.ImageCount = state.window.opal->imageCount;
   imguiVulkanInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-  imguiVulkanInfo.CheckVkResultFn = ImguiVkResultCheck;
+  imguiVulkanInfo.CheckVkResultFn = NULL;
   ImGui_ImplVulkan_Init(&imguiVulkanInfo, state.uiRenderpass->vk.renderpass);
 
   VkCommandBuffer cmd;

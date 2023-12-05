@@ -8,6 +8,8 @@
 #include "src/camera.h"
 #include "src/ui.h"
 
+extern void LapisInputCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 struct MsbApplication
 {
 private:
@@ -25,6 +27,12 @@ private:
   MsbCamera camera;
 
   MsbUi ui;
+
+  struct
+  {
+    float delta;
+    float realSinceStart;
+  } time;
 
 public:
   MsbResult Run();
@@ -46,6 +54,9 @@ private:
   // Update
   // ===============
   MsbResult Update();
+
+  void UpdateTime();
+  MsbResult UpdateGlobalBuffer();
 
   MsbResult Resize(Vec2U newExtents);
   MsbResult RenderScene();

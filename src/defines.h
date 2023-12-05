@@ -38,49 +38,49 @@ enum MsbResult
 
 extern uint32_t attemptDepth;
 
-#define MSB_ATTEMPT(fn, ...)                                                                       \
-{                                                                                                  \
-  attemptDepth++;                                                                                  \
-  MsbResult result = (fn);                                                                         \
-  attemptDepth--;                                                                                  \
-  if (result != Msb_Success)                                                                       \
-  {                                                                                                \
-    MSB_ERR("%u :: Function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
-    {                                                                                              \
-      __VA_ARGS__;                                                                                 \
-    }                                                                                              \
-    return Msb_Fail;                                                                               \
-  }                                                                                                \
-}
-
-#define MSB_ATTEMPT_OPAL(fn, ...)                                                                       \
-{                                                                                                       \
-  attemptDepth++;                                                                                       \
-  OpalResult result = (fn);                                                                             \
-  attemptDepth--;                                                                                       \
-  if (result != Opal_Success)                                                                           \
-  {                                                                                                     \
-    MSB_ERR("%u :: Opal function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
-    {                                                                                                   \
-      __VA_ARGS__;                                                                                      \
-    }                                                                                                   \
-    return Msb_Fail;                                                                                    \
-  }                                                                                                     \
-}
-
-#define MSB_ATTEMPT_LAPIS(fn, ...)                                                                       \
+#define MSB_ATTEMPT(fn, ...)                                                                             \
 {                                                                                                        \
   attemptDepth++;                                                                                        \
-  LapisResult result = (fn);                                                                             \
+  MsbResult result = (fn);                                                                               \
   attemptDepth--;                                                                                        \
-  if (result != Lapis_Success)                                                                           \
+  if (result != Msb_Success)                                                                             \
   {                                                                                                      \
-    MSB_ERR("%u :: Lapis function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    MSB_ERR("ERR-%02u :: Function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
     {                                                                                                    \
       __VA_ARGS__;                                                                                       \
     }                                                                                                    \
     return Msb_Fail;                                                                                     \
   }                                                                                                      \
+}
+
+#define MSB_ATTEMPT_OPAL(fn, ...)                                                                             \
+{                                                                                                             \
+  attemptDepth++;                                                                                             \
+  OpalResult result = (fn);                                                                                   \
+  attemptDepth--;                                                                                             \
+  if (result != Opal_Success)                                                                                 \
+  {                                                                                                           \
+    MSB_ERR("ERR-%02u :: Opal function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                                         \
+      __VA_ARGS__;                                                                                            \
+    }                                                                                                         \
+    return Msb_Fail;                                                                                          \
+  }                                                                                                           \
+}
+
+#define MSB_ATTEMPT_LAPIS(fn, ...)                                                                             \
+{                                                                                                              \
+  attemptDepth++;                                                                                              \
+  LapisResult result = (fn);                                                                                   \
+  attemptDepth--;                                                                                              \
+  if (result != Lapis_Success)                                                                                 \
+  {                                                                                                            \
+    MSB_ERR("ERR-%02u :: Lapis function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                                          \
+      __VA_ARGS__;                                                                                             \
+    }                                                                                                          \
+    return Msb_Fail;                                                                                           \
+  }                                                                                                            \
 }
 
 typedef struct MsWindow

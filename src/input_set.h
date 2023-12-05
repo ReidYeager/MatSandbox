@@ -40,6 +40,28 @@ enum MsbBufferElementType
   Msb_Buffer_COUNT
 };
 
+static const char* MsbBufferElementTypeNames[] =
+{
+  "Int",
+  "Int2",
+  "Int3",
+  "Int4",
+  "Uint",
+  "Uint2",
+  "Uint3",
+  "Uint4",
+  "Float",
+  "Float2",
+  "Float3",
+  "Float4",
+  "Double",
+  "Double2",
+  "Double3",
+  "Double4",
+  "Mat4",
+  "Invalid"
+};
+
 struct MsbBufferElement
 {
   std::string name;
@@ -104,18 +126,21 @@ private:
   OpalInputLayout layout;
   OpalInputSet set;
 
+  std::string name;
   uint32_t nextArgumentId = 0;
   std::vector<MsbInputArgument> pArguments;
 
 public:
   MsbInputSet() { layout = OPAL_NULL_HANDLE; set = OPAL_NULL_HANDLE; }
 
-  MsbResult Init(std::vector<MsbInputArgumentInitInfo>& pInitInfo);
+  MsbResult Init(std::string name, std::vector<MsbInputArgumentInitInfo>& pInitInfo);
   void Shutdown();
 
-  OpalInputLayout GetLayout() { return layout; };
+  std::string GetName() { return name; }
+  OpalInputLayout GetLayout() { return layout; }
   OpalInputSet GetSet() { return set; };
 
+  uint32_t GetArgumentCount() { return pArguments.size(); }
   MsbInputArgument* GetArgument(uint32_t index) { return &pArguments[index]; }
 
   MsbResult UpdateLayoutAndSet();
