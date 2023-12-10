@@ -22,49 +22,71 @@
 #error "Unsupported platform"
 #endif
 
-#define MS_SHADER_NAME_MAX_LENGTH 64
-#define MS_CODE_MAX_LENGTH 2048
+#define MSB_SHADER_NAME_MAX_LENGTH 64
+#define MSB_CODE_MAX_LENGTH 2048
 
-enum MsResult
+#define MSB_RES_IMAGE_KEY "<resPath>/"
+#define MSB_SAVEFILE_FINGERPRINT_BITS 0xffffff00
+#define MSB_SAVEFILE_FINGERPRINT 0xa812bd00
+#define MSB_SAVEFILE_VERSION 0x01
+
+#define MSB_LOG(msg, ...) LapisConsolePrintMessage(Lapis_Console_Info, "MSB :: " msg, __VA_ARGS__);
+#define MSB_ERR(msg, ...) LapisConsolePrintMessage(Lapis_Console_Error, "MSB :: " msg, __VA_ARGS__);
+
+enum MsbResult
 {
-  Ms_Success,
-  Ms_Fail,
-  Ms_Fail_Invalid_Field,
-  MS_Fail_External
+  Msb_Success,
+  Msb_Fail,
+  Msb_Fail_External
 };
 
-#define MS_ATTEMPT(fn, ...) \
-{                           \
-  MsResult result = (fn);   \
-  if (result != Ms_Success) \
-  {                         \
-    return Ms_Fail;         \
-  }                         \
+extern uint32_t attemptDepth;
+
+#define MSB_ATTEMPT(fn, ...)                                                                             \
+{                                                                                                        \
+  attemptDepth++;                                                                                        \
+  MsbResult result = (fn);                                                                               \
+  attemptDepth--;                                                                                        \
+  if (result != Msb_Success)                                                                             \
+  {                                                                                                      \
+    MSB_ERR("ERR-%02u :: Function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                                    \
+      __VA_ARGS__;                                                                                       \
+    }                                                                                                    \
+    return Msb_Fail;                                                                                     \
+  }                                                                                                      \
 }
 
-#define MS_ATTEMPT_OPAL(fn, ...) \
-{                                \
-  OpalResult result = (fn);      \
-  if (result != Opal_Success)    \
-  {                              \
-    {                            \
-      __VA_ARGS__;               \
-    }                            \
-    return Ms_Fail;              \
-  }                              \
+#define MSB_ATTEMPT_OPAL(fn, ...)                                                                             \
+{                                                                                                             \
+  attemptDepth++;                                                                                             \
+  OpalResult result = (fn);                                                                                   \
+  attemptDepth--;                                                                                             \
+  if (result != Opal_Success)                                                                                 \
+  {                                                                                                           \
+    MSB_ERR("ERR-%02u :: Opal function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                                         \
+      __VA_ARGS__;                                                                                            \
+    }                                                                                                         \
+    return Msb_Fail_External;                                                                                 \
+  }                                                                                                           \
 }
 
-#define MS_ATTEMPT_LAPIS(fn, ...) \
-{                                 \
-  LapisResult result = (fn);      \
-  if (result != Lapis_Success)    \
-  {                               \
-    {                             \
-      __VA_ARGS__;                \
-    }                             \
-    return Ms_Fail;               \
-  }                               \
+#define MSB_ATTEMPT_LAPIS(fn, ...)                                                                             \
+{                                                                                                              \
+  attemptDepth++;                                                                                              \
+  LapisResult result = (fn);                                                                                   \
+  attemptDepth--;                                                                                              \
+  if (result != Lapis_Success)                                                                                 \
+  {                                                                                                            \
+    MSB_ERR("ERR-%02u :: Lapis function failure :: '%s'\n\t%s : %d\n", attemptDepth, #fn, __FILE__, __LINE__); \
+    {                                                                                                          \
+      __VA_ARGS__;                                                                                             \
+    }                                                                                                          \
+    return Msb_Fail_External;                                                                                  \
+  }                                                                                                            \
 }
+
 
 typedef struct MsbWindow
 {

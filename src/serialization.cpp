@@ -20,15 +20,44 @@ void WriteBuffer(FILE* outFile, MsInputArgumentBuffer* buffer)
   }
 }
 
-void WriteImage(FILE* outFile, MsInputArgumentImage* image, bool embedImages)
+void WriteImage(FILE* outFile, MsInputArgumentImage* image, MsbSerializeSaveFlags flags)
 {
-  fwrite(&embedImages, sizeof(bool), 1, outFile);
-
-  if (!embedImages)
+  if (! (flags & Msb_Save_Images_Embed))
   {
     uint32_t pathLength = strlen(image->sourcePath); // Does not include '\0'
+    const char* resPath = GAME_RESOURCE_PATH;
+
+    // Try to ignore the resource path
+    uint32_t i = 0;
+    while (i < pathLength && image->sourcePath[i] != '\0')
+    {
+      if (resPath[i] == '\0')
+        break;
+
+      if (image->sourcePath[i] != resPath[i])
+      {
+        i = 0;
+        break;
+      }
+
+      i++;
+    }
+
+    pathLength -= i;
+    char path[1024];
+    
+    if (i > 0)
+    {
+      sprintf(path, "%s%s", MSB_RES_IMAGE_KEY, image->sourcePath + i);
+      pathLength += strlen(MSB_RES_IMAGE_KEY);
+    }
+    else
+    {
+      sprintf(path, "%s", image->sourcePath);
+    }
+
     fwrite(&pathLength, sizeof(uint32_t), 1, outFile);
-    fwrite(image->sourcePath, sizeof(char), pathLength, outFile);
+    fwrite(path, sizeof(char), pathLength, outFile);
   }
   else
   {
@@ -52,7 +81,7 @@ void WriteImage(FILE* outFile, MsInputArgumentImage* image, bool embedImages)
   }
 }
 
-void WriteInputSet(FILE* outFile, MsInputSet* set, bool embedImages)
+void WriteInputSet(FILE* outFile, MsInputSet* set, MsbSerializeSaveFlags flags)
 {
   fwrite(&set->count, sizeof(uint32_t), 1, outFile);
 
@@ -63,7 +92,7 @@ void WriteInputSet(FILE* outFile, MsInputSet* set, bool embedImages)
     switch (arg->type)
     {
     case Ms_Input_Buffer: WriteBuffer(outFile, &arg->data.buffer); break;
-    case Ms_Input_Image: WriteImage(outFile, &arg->data.image, embedImages); break;
+    case Ms_Input_Image: WriteImage(outFile, &arg->data.image, flags); break;
     }
   }
 }
@@ -81,30 +110,34 @@ void WriteShaders(FILE* outFile)
   }
 }
 
-MsResult MsSerializeSave(const char* path, bool embedImages)
+MsbResult MsSerializeSave(const char* path, MsbSerializeSaveFlags flags)
 {
   FILE* outFile = fopen(path, "wb");
 
+  uint32_t fileFingerprint = MSB_SAVEFILE_FINGERPRINT | MSB_SAVEFILE_VERSION;
+  fwrite(&fileFingerprint, sizeof(uint32_t), 1, outFile);
+  fwrite(&flags, sizeof(uint32_t), 1, outFile);
+
   WriteShaders(outFile);
-  WriteInputSet(outFile, &state.materialInputSet, embedImages);
+  WriteInputSet(outFile, &state.materialInputSet, flags);
 
   fclose(outFile);
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
 // ======
 // Load
 // ======
 
-void ReadBuffer(FILE* inFile, MsInputSet* set)
+MsbResult ReadBuffer(FILE* inFile, MsInputSet* set, MsbSerializeSaveFlags flags)
 {
   MsInputArgumentInitInfo info;
   info.type = Ms_Input_Buffer;
   fread(&info.bufferInfo.elementCount, sizeof(uint32_t), 1, inFile);
   info.bufferInfo.pElementTypes = LapisMemAllocArray(MsBufferElementType, info.bufferInfo.elementCount);
   fread(info.bufferInfo.pElementTypes, sizeof(MsBufferElementType), info.bufferInfo.elementCount, inFile);
-  MsInputSetAddArgument(set, info);
+  MSB_ATTEMPT(MsInputSetAddArgument(set, info));
 
   MsInputArgumentBuffer* buffer = &set->pArguments[set->count - 1].data.buffer;
 
@@ -113,26 +146,52 @@ void ReadBuffer(FILE* inFile, MsInputSet* set)
     MsBufferElement* e = &buffer->pElements[i];
     fread(e->data, MsGetBufferElementSize(e->type), 1, inFile);
   }
+
+  return Msb_Success;
 }
 
-void ReadImage(FILE* inFile, MsInputSet* set)
+MsbResult ReadImage(FILE* inFile, MsInputSet* set, MsbSerializeSaveFlags flags)
 {
-  bool isEmbedded;
-  fread(&isEmbedded, sizeof(bool), 1, inFile);
-
   MsInputArgumentInitInfo newImageInfo;
   newImageInfo.type = Ms_Input_Image;
   newImageInfo.imageInfo.imagePath = NULL;
 
-  if (!isEmbedded)
+  if ((flags & Msb_Save_Images_Embed) == 0)
   {
     uint32_t pathLength;
     fread(&pathLength, sizeof(uint32_t), 1, inFile); // Does not include '\0'
-    char* path = LapisMemAllocArray(char, pathLength + 1);
-    fread(path, sizeof(char), pathLength, inFile);
-    path[pathLength] = 0;
+    char pathBuffer[1024];
+    fread(pathBuffer, sizeof(char), pathLength, inFile);
+    pathBuffer[pathLength] = 0;
 
-    newImageInfo.imageInfo.imagePath = path;
+    char* resKey = MSB_RES_IMAGE_KEY;
+
+    uint32_t i = 0;
+    while (i < pathLength && pathBuffer[i] != '\0')
+    {
+      if (resKey[i] == '\0')
+        break;
+
+      if (pathBuffer[i] != resKey[i])
+      {
+        i = 0;
+        break;
+      }
+
+      i++;
+    }
+
+    if (i > 0)
+    {
+      char resPath[1024] = {0};
+      sprintf(resPath, "%s%s", GAME_RESOURCE_PATH, pathBuffer + i);
+      pathLength = strlen(resPath);
+      LapisMemCopy(resPath, pathBuffer, pathLength);
+    }
+
+    pathBuffer[pathLength] = '\0';
+    newImageInfo.imageInfo.imagePath = LapisMemAllocZeroArray(char, pathLength + 1);
+    LapisMemCopy(pathBuffer, newImageInfo.imageInfo.imagePath, pathLength + 1);
   }
   else
   {
@@ -151,15 +210,17 @@ void ReadImage(FILE* inFile, MsInputSet* set)
     newImageInfo.imageInfo.imageData = imageData;
   }
 
-  MsInputSetAddArgument(set, newImageInfo);
+  MSB_ATTEMPT(MsInputSetAddArgument(set, newImageInfo));
 
   if (newImageInfo.imageInfo.imagePath != NULL)
   {
     LapisMemFree(newImageInfo.imageInfo.imagePath);
   }
+
+  return Msb_Success;
 }
 
-void ReadInputSet(FILE* inFile, MsInputSet* set)
+MsbResult ReadInputSet(FILE* inFile, MsInputSet* set, MsbSerializeSaveFlags flags)
 {
   uint32_t count;
   fread(&count, sizeof(uint32_t), 1, inFile);
@@ -171,13 +232,15 @@ void ReadInputSet(FILE* inFile, MsInputSet* set)
 
     switch (type)
     {
-    case Ms_Input_Buffer: ReadBuffer(inFile, set); break;
-    case Ms_Input_Image: ReadImage(inFile, set); break;
+    case Ms_Input_Buffer: MSB_ATTEMPT(ReadBuffer(inFile, set, flags)); break;
+    case Ms_Input_Image: MSB_ATTEMPT(ReadImage(inFile, set, flags)); break;
     }
   }
+
+  return Msb_Success;
 }
 
-void ReadShaders(FILE* inFile)
+MsbResult ReadShaders(FILE* inFile)
 {
   for (uint32_t i = 0; i < state.shaderCount; i++)
   {
@@ -198,32 +261,56 @@ void ReadShaders(FILE* inFile)
     shader->buffer[shader->size] = 0;
     fread(shader->buffer, sizeof(char), shader->size, inFile);
   }
+
+  return Msb_Success;
 }
 
-MsResult MsSerializeLoad(const char* path)
+MsbResult MsSerializeLoad(const char* path)
 {
   OpalWaitIdle();
 
   FILE* inFile = fopen(path, "rb");
 
-  ReadShaders(inFile);
+  uint32_t fileFingerprint;
+  fread(&fileFingerprint, sizeof(uint32_t), 1, inFile);
+
+  if ((fileFingerprint & MSB_SAVEFILE_FINGERPRINT_BITS) != MSB_SAVEFILE_FINGERPRINT)
+  {
+    fclose(inFile);
+    MSB_ERR("Invalid file. Can not load '%s'\n", path);
+    return Msb_Fail;
+  }
+
+  uint32_t fileVersion = fileFingerprint & ~MSB_SAVEFILE_FINGERPRINT_BITS;
+  if (fileVersion != MSB_SAVEFILE_VERSION)
+  {
+    fclose(inFile);
+    MSB_ERR("Mismatch serialization version (%u should be %u) for file '%s'\n", fileVersion, MSB_SAVEFILE_VERSION, path);
+    return Msb_Fail;
+  }
+
+
+  MsbSerializeSaveFlags flags;
+  fread(&flags, sizeof(MsbSerializeSaveFlags), 1, inFile);
+
+  MSB_ATTEMPT(ReadShaders(inFile));
   MsInputSetShutdown(&state.materialInputSet);
-  ReadInputSet(inFile, &state.materialInputSet);
+  MSB_ATTEMPT(ReadInputSet(inFile, &state.materialInputSet, flags));
 
   fclose(inFile);
 
   for (uint32_t i = 0; i < state.shaderCount; i++)
   {
-    if (MsCompileShader(&state.pShaderCodeInfos[i], state.pShaderCodeInfos[i].buffer) == Ms_Success)
+    if (MsCompileShader(&state.pShaderCodeInfos[i], state.pShaderCodeInfos[i].buffer) == Msb_Success)
     {
-      MS_ATTEMPT(MsUpdateShader(&state.pShaderCodeInfos[i]));
+      MSB_ATTEMPT(MsUpdateShader(&state.pShaderCodeInfos[i]));
     }
   }
 
-  MS_ATTEMPT(MsUpdateMaterial());
-  MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+  MSB_ATTEMPT(MsUpdateMaterial());
+  MSB_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
 
   state.serialLoadPath[0] = 0;
 
-  return Ms_Success;
+  return Msb_Success;
 }

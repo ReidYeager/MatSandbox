@@ -71,15 +71,15 @@ const char* MsGetShaderTypeExtension(OpalShaderType type)
   return shaderTypeExtension;
 }
 
-MsResult MsCompileQueuedShaders()
+MsbResult MsCompileQueuedShaders()
 {
   uint32_t queuedCount = state.shaderCompileQueueLength;
   for (uint32_t i = 0; i < queuedCount; i++)
   {
     ShaderCodeInfo* codeInfo = state.pShaderCompileQueue[i];
-    if (MsCompileShader(codeInfo, codeInfo->buffer) == Ms_Success)
+    if (MsCompileShader(codeInfo, codeInfo->buffer) == Msb_Success)
     {
-      MS_ATTEMPT(MsUpdateShader(codeInfo));
+      MSB_ATTEMPT(MsUpdateShader(codeInfo));
     }
 
     state.shaderCompileQueueLength--;
@@ -87,17 +87,17 @@ MsResult MsCompileQueuedShaders()
 
   if (queuedCount)
   {
-    MS_ATTEMPT(MsUpdateMaterial());
-    MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+    MSB_ATTEMPT(MsUpdateMaterial());
+    MSB_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult MsUpdateShader(ShaderCodeInfo* codeInfo)
+MsbResult MsUpdateShader(ShaderCodeInfo* codeInfo)
 {
-  char shaderNameBuffer[MS_SHADER_NAME_MAX_LENGTH];
-  sprintf_s(shaderNameBuffer, MS_SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", MsGetShaderTypeExtension(codeInfo->type));
+  char shaderNameBuffer[MSB_SHADER_NAME_MAX_LENGTH];
+  sprintf_s(shaderNameBuffer, MSB_SHADER_NAME_MAX_LENGTH, "NewShaderSource.%s", MsGetShaderTypeExtension(codeInfo->type));
 
   OpalShader* shader = &codeInfo->shader;
 
@@ -107,17 +107,17 @@ MsResult MsUpdateShader(ShaderCodeInfo* codeInfo)
   if (OpalShaderInit(shader, initInfo) != Opal_Success)
   {
     printf("Failed to reinit the shader\n");
-    return Ms_Fail;
+    return Msb_Fail;
   }
   LapisMemFree(initInfo.pSource);
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult CreateBuffer(MsInputArgumentBuffer* argument)
+MsbResult CreateBuffer(MsInputArgumentBuffer* argument)
 {
   if (argument == NULL)
-    return Ms_Fail;
+    return Msb_Fail;
 
   if (argument->buffer != NULL)
     OpalBufferShutdown(&argument->buffer);
@@ -136,22 +136,22 @@ MsResult CreateBuffer(MsInputArgumentBuffer* argument)
   }
 
   if (argument->size == 0)
-    return Ms_Fail;
+    return Msb_Fail;
 
   OpalBufferInitInfo initInfo = { 0 };
   initInfo.usage = Opal_Buffer_Usage_Uniform;
   initInfo.size = argument->size;
-  MS_ATTEMPT_OPAL(OpalBufferInit(&argument->buffer, initInfo));
+  MSB_ATTEMPT_OPAL(OpalBufferInit(&argument->buffer, initInfo));
 
   for (uint32_t i = 0; i < argument->elementCount; i++)
   {
-    MS_ATTEMPT_OPAL(OpalBufferPushDataSegment(argument->buffer, argument->pElements[i].data, MsGetBufferElementSize(argument->pElements[i].type), argument->size));
+    MSB_ATTEMPT_OPAL(OpalBufferPushDataSegment(argument->buffer, argument->pElements[i].data, MsGetBufferElementSize(argument->pElements[i].type), argument->size));
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set)
+MsbResult MsInputSetUpdateLayoutAndSet(MsInputSet* set)
 {
   if (set->set != NULL)
     OpalInputSetShutdown(&set->set);
@@ -179,10 +179,10 @@ MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set)
     }
   }
 
-  MS_ATTEMPT_OPAL(OpalInputLayoutInit(&set->layout, layoutInfo));
+  MSB_ATTEMPT_OPAL(OpalInputLayoutInit(&set->layout, layoutInfo));
   setInfo.layout = set->layout;
 
-  MS_ATTEMPT_OPAL(OpalInputSetInit(&set->set, setInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetInit(&set->set, setInfo));
 
   // Send arguments to the input set
   OpalInputInfo* inputInfo = LapisMemAllocZeroArray(OpalInputInfo, set->count);
@@ -204,13 +204,13 @@ MsResult MsInputSetUpdateLayoutAndSet(MsInputSet* set)
       inputInfo[i].type = Opal_Input_Type_Samped_Image;
       inputInfo[i].value.image = argument->data.image.image;
     } break;
-    default: return Ms_Fail;
+    default: return Msb_Fail;
     }
   }
-  MS_ATTEMPT_OPAL(OpalInputSetUpdate(set->set, set->count, inputInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetUpdate(set->set, set->count, inputInfo));
   LapisMemFree(inputInfo);
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
 void MsMaterialShutdown()
@@ -222,9 +222,9 @@ void MsMaterialShutdown()
   }
 }
 
-MsResult MsUpdateMaterial()
+MsbResult MsUpdateMaterial()
 {
-  MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.materialInputSet));
+  MSB_ATTEMPT(MsInputSetUpdateLayoutAndSet(&state.materialInputSet));
 
   OpalShader* pShaders = LapisMemAllocArray(OpalShader, state.shaderCount);
   for (uint32_t i = 0; i < state.shaderCount; i++)
@@ -241,14 +241,14 @@ MsResult MsUpdateMaterial()
   matInfo.pushConstantSize = 0;
   matInfo.renderpass = state.sceneRenderpass;
   matInfo.subpassIndex = 0;
-  MS_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
+  MSB_ATTEMPT_OPAL(OpalMaterialInit(&state.material, matInfo));
 
   LapisMemFree(pShaders);
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult MsInputSetPushBuffers(MsInputSet* set)
+MsbResult MsInputSetPushBuffers(MsInputSet* set)
 {
   for (uint32_t argi = 0; argi < set->count; argi++)
   {
@@ -267,16 +267,16 @@ MsResult MsInputSetPushBuffers(MsInputSet* set)
         offset = MsBufferOffsetToBaseAlignment(offset, element->type);
 
         elementSize = MsGetBufferElementSize(element->type);
-        MS_ATTEMPT_OPAL(OpalBufferPushDataSegment(buffer->buffer, buffer->pElements[i].data, elementSize, offset));
+        MSB_ATTEMPT_OPAL(OpalBufferPushDataSegment(buffer->buffer, buffer->pElements[i].data, elementSize, offset));
         offset += elementSize;
       }
     }
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
+MsbResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
 {
   MsInputArgumentBuffer* buffer = &argument->data.buffer;
 
@@ -302,7 +302,7 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
   OpalBufferInitInfo bufferInfo;
   bufferInfo.size = buffer->size;
   bufferInfo.usage = Opal_Buffer_Usage_Uniform;
-  MS_ATTEMPT_OPAL(OpalBufferInit(&buffer->buffer, bufferInfo));
+  MSB_ATTEMPT_OPAL(OpalBufferInit(&buffer->buffer, bufferInfo));
 
   // Update material input set
   uint32_t bufferArgIndex = 0;
@@ -316,9 +316,9 @@ MsResult MsBufferAddElement(MsInputArgument* argument, MsBufferElementType type)
   inputInfo.type = Opal_Input_Type_Uniform_Buffer;
   inputInfo.value.buffer = buffer->buffer;
 
-  MS_ATTEMPT_OPAL(OpalInputSetUpdate(state.materialInputSet.set, 1, &inputInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetUpdate(state.materialInputSet.set, 1, &inputInfo));
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
 void MsBufferRemoveElement(MsInputArgumentBuffer* buffer, uint32_t index)
@@ -333,7 +333,7 @@ void MsBufferRemoveElement(MsInputArgumentBuffer* buffer, uint32_t index)
   buffer->elementCount--;
 }
 
-MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
+MsbResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
 {
   MsBufferElement* pElements = LapisMemAllocZeroArray(MsBufferElement, info.bufferInfo.elementCount);
 
@@ -352,7 +352,7 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
   OpalBufferInitInfo bufferInfo;
   bufferInfo.size = bufferSize;
   bufferInfo.usage = Opal_Buffer_Usage_Uniform;
-  MS_ATTEMPT_OPAL(
+  MSB_ATTEMPT_OPAL(
     OpalBufferInit(&argument->data.buffer.buffer, bufferInfo),
     {
       for (uint32_t i = 0; i < info.bufferInfo.elementCount; i++)
@@ -366,10 +366,10 @@ MsResult InitBufferArgument(MsInputArgument* argument, MsInputArgumentInitInfo i
   argument->data.buffer.pElements = pElements;
   argument->data.buffer.size = bufferSize;
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult ImageArgumentLoadFromFile(const char* path, void** imageData, OpalExtent* extents)
+MsbResult ImageArgumentLoadFromFile(const char* path, void** imageData, OpalExtent* extents)
 {
   int channels;
   int32_t imageWidth = 0, imageHeight = 0;
@@ -378,16 +378,16 @@ MsResult ImageArgumentLoadFromFile(const char* path, void** imageData, OpalExten
   if (imageWidth <= 0 || imageWidth <= 0 || imageSource == NULL)
   {
     LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"", path);
-    return Ms_Fail;
+    return Msb_Fail;
   }
 
   *imageData = imageSource;
   *extents = { (uint32_t)imageWidth, (uint32_t)imageHeight, 1 };
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
+MsbResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo info)
 {
   MsInputArgumentImage* image = &argument->data.image;
 
@@ -396,7 +396,7 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
 
   if (info.imageInfo.imagePath != NULL)
   {
-    MS_ATTEMPT(ImageArgumentLoadFromFile(info.imageInfo.imagePath, &imageData, &extent));
+    MSB_ATTEMPT(ImageArgumentLoadFromFile(info.imageInfo.imagePath, &imageData, &extent));
   }
 
   OpalImageInitInfo initInfo;
@@ -404,8 +404,8 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
   initInfo.sampleType = Opal_Sample_Bilinear;
   initInfo.usage = Opal_Image_Usage_Uniform;
   initInfo.format = Opal_Format_RGBA8;
-  MS_ATTEMPT_OPAL(OpalImageInit(&image->image, initInfo));
-  MS_ATTEMPT_OPAL(OpalImageFill(image->image, imageData));
+  MSB_ATTEMPT_OPAL(OpalImageInit(&image->image, initInfo));
+  MSB_ATTEMPT_OPAL(OpalImageFill(image->image, imageData));
 
   if (info.imageInfo.imagePath != NULL)
   {
@@ -418,7 +418,7 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
   OpalInputSetInitInfo setInfo = { 0 };
   setInfo.layout = state.uiSingleImageInputLayout;
   setInfo.pInputValues = &inImage;
-  MS_ATTEMPT_OPAL(OpalInputSetInit(&image->set, setInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetInit(&image->set, setInfo));
 
   if (info.imageInfo.imagePath != NULL)
   {
@@ -428,29 +428,29 @@ MsResult InitImageArgument(MsInputArgument* argument, MsInputArgumentInitInfo in
     LapisMemCopy(info.imageInfo.imagePath, image->sourcePath, pathLength);
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult MsReimportQueuedImages()
+MsbResult MsReimportQueuedImages()
 {
   uint32_t queueCount = state.imageReimportQueueLength;
   for (uint32_t i = 0; i < queueCount; i++)
   {
     ImageReimportInfo* info = &state.pImageReimportQueue[i];
-    MS_ATTEMPT(MsInputSetReloadImage(info->set, info->argumentIndex, info->pathBuffer));
+    MSB_ATTEMPT(MsInputSetReloadImage(info->set, info->argumentIndex, info->pathBuffer));
     state.imageReimportQueueLength--;
   }
 
   if (queueCount)
   {
-    MS_ATTEMPT(MsUpdateMaterial());
-    MS_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
+    MSB_ATTEMPT(MsUpdateMaterial());
+    MSB_ATTEMPT(MsInputSetPushBuffers(&state.materialInputSet));
   }
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
-MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
+MsbResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
 {
   OpalWaitIdle();
 
@@ -463,11 +463,11 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
 
   if (info.type == Ms_Input_Buffer)
   {
-    MS_ATTEMPT(InitBufferArgument(&newArgument, info));
+    MSB_ATTEMPT(InitBufferArgument(&newArgument, info));
   }
   else
   {
-    MS_ATTEMPT(InitImageArgument(&newArgument, info));
+    MSB_ATTEMPT(InitImageArgument(&newArgument, info));
   }
 
   set->count++;
@@ -477,9 +477,9 @@ MsResult MsInputSetAddArgument(MsInputSet* set, MsInputArgumentInitInfo info)
     set->pArguments = LapisMemAllocArray(MsInputArgument, set->count);
   set->pArguments[set->count - 1] = newArgument;
 
-  MS_ATTEMPT(MsInputSetUpdateLayoutAndSet(set));
+  MSB_ATTEMPT(MsInputSetUpdateLayoutAndSet(set));
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
 void MsInputSetRemoveArgument(MsInputSet* set, uint32_t index)
@@ -519,12 +519,12 @@ void MsInputSetRemoveArgument(MsInputSet* set, uint32_t index)
   set->count--;
 }
 
-MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
+MsbResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
 {
   if (access(path, F_OK) != 0)
   {
     LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"\n", path);
-    return Ms_Fail;
+    return Msb_Fail;
   }
 
   MsInputArgumentImage* image = &set->pArguments[imageIndex].data.image;
@@ -541,7 +541,7 @@ MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
   if (imageWidth <= 0 || imageWidth <= 0 || imageSource == NULL)
   {
     LapisConsolePrintMessage(Lapis_Console_Error, "Unable to load specified image file\n>> \"%s\"\n", path);
-    return Ms_Fail;
+    return Msb_Fail;
   }
 
   OpalImageShutdown(&image->image);
@@ -551,8 +551,8 @@ MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
   initInfo.sampleType = Opal_Sample_Bilinear;
   initInfo.usage = Opal_Image_Usage_Uniform;
   initInfo.format = Opal_Format_RGBA8;
-  MS_ATTEMPT_OPAL(OpalImageInit(&image->image, initInfo));
-  MS_ATTEMPT_OPAL(OpalImageFill(image->image, imageSource));
+  MSB_ATTEMPT_OPAL(OpalImageInit(&image->image, initInfo));
+  MSB_ATTEMPT_OPAL(OpalImageFill(image->image, imageSource));
 
   stbi_image_free(imageSource);
 
@@ -562,7 +562,7 @@ MsResult MsInputSetReloadImage(MsInputSet* set, uint32_t imageIndex, char* path)
   OpalInputSetInitInfo setInfo = { 0 };
   setInfo.layout = state.uiSingleImageInputLayout;
   setInfo.pInputValues = &inImage;
-  MS_ATTEMPT_OPAL(OpalInputSetInit(&image->set, setInfo));
+  MSB_ATTEMPT_OPAL(OpalInputSetInit(&image->set, setInfo));
 
-  return Ms_Success;
+  return Msb_Success;
 }

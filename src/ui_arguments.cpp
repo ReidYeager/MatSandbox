@@ -21,7 +21,7 @@ void AddImageToReimportQueue(MsInputSet* set, uint32_t argIndex, const char* fil
   state.imageReimportQueueLength++;
 }
 
-MsResult MsUiShowArgumentsPanel()
+MsbResult MsUiShowArgumentsPanel()
 {
   static char imagePathBuffer[1024];
   ImGui::Begin("Arguments", NULL, ImGuiWindowFlags_MenuBar);
@@ -99,7 +99,7 @@ MsResult MsUiShowArgumentsPanel()
 
   ImGui::End();
 
-  return Ms_Success;
+  return Msb_Success;
 }
 
 void ShowInputSetArguments(MsInputSet* set, const char* title)
